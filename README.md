@@ -1,7 +1,7 @@
 Instructions - Vulkan Grass Rendering
 ========================
 
-This is due **______________, evening at midnight**.
+This is due **Sunday 11/5, evening at midnight**.
 
 **Summary:**
 In this project, you will use Vulkan to implement a grass simulator and renderer. You will
