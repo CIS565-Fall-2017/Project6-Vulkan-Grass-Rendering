@@ -15,10 +15,10 @@ layout(set = 1, binding = 0) uniform Time {
 };
 
 struct Blade {
-    vec4 v0;
-    vec4 v1;
-    vec4 v2;
-    vec4 up;
+    vec4 v0; //Orientation: the orientation of the grass blade's face
+    vec4 v1; //Height: the height of the grass blade
+    vec4 v2; //Width: the width of the grass blade's face
+    vec4 up; //Stiffness coefficient: the stiffness of our grass blade, which will affect the force computations on our blade
 };
 
 // TODO: Add bindings to:
