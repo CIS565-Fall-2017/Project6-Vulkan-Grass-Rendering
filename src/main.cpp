@@ -6,17 +6,39 @@
 #include "Scene.h"
 #include "Image.h"
 
+#include <sstream>
+
 Device* device;
 SwapChain* swapChain;
 Renderer* renderer;
 Camera* camera;
+
+double oldTime = 0.0;
+double currentTime = 0.0;
+int fps = 0;
+int fpstracker = 0;
+
+std::string convertToString(int number)
+{
+	std::stringstream ss;
+	ss << number;
+	return ss.str();
+}
+
+std::string convertToString(double number)
+{
+	std::stringstream ss;
+	ss << number;
+	return ss.str();
+}
 
 namespace {
     void resizeCallback(GLFWwindow* window, int width, int height) {
         if (width == 0 || height == 0) return;
 
         vkDeviceWaitIdle(device->GetVkDevice());
-        swapChain->Recreate();
+        swapChain->Recreate(width, height);
+		camera->UpdateAspectRatio(float(width) / height);
         renderer->RecreateFrameResources();
     }
 
@@ -58,7 +80,7 @@ namespace {
         } else if (rightMouseDown) {
             double deltaZ = static_cast<float>((previousY - yPosition) * 0.05);
 
-            camera->UpdateOrbit(0.0f, 0.0f, deltaZ);
+            camera->UpdateOrbit(0.0f, 0.0f, (float)deltaZ);
 
             previousY = yPosition;
         }
@@ -67,7 +89,7 @@ namespace {
 
 int main() {
     static constexpr char* applicationName = "Vulkan Grass Rendering";
-    InitializeWindow(640, 480, applicationName);
+    InitializeWindow(800, 600, applicationName);
 
     unsigned int glfwExtensionCount = 0;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -90,7 +112,7 @@ int main() {
 
     swapChain = device->CreateSwapChain(surface, 5);
 
-    camera = new Camera(device, 640.f / 480.f);
+    camera = new Camera(device, 800.f / 600.f);
 
     VkCommandPoolCreateInfo transferPoolInfo = {};
     transferPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -116,7 +138,7 @@ int main() {
         grassImageMemory
     );
 
-    float planeDim = 15.f;
+    float planeDim = 200.0f;
     float halfWidth = planeDim * 0.5f;
     Model* plane = new Model(device, transferCommandPool,
         {
@@ -127,15 +149,38 @@ int main() {
         },
         { 0, 1, 2, 2, 3, 0 }
     );
-    plane->SetTexture(grassImage);
-    
-    Blades* blades = new Blades(device, transferCommandPool, planeDim);
+    plane->SetTexture(grassImage);   
 
-    vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
+	VkImage houseImage;
+	VkDeviceMemory houseImageMemory;
+	Image::FromFile(device,
+		transferCommandPool,
+		"images/chalet.jpg",
+		VK_FORMAT_R8G8B8A8_UNORM,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		houseImage,
+		houseImageMemory
+	);
 
-    Scene* scene = new Scene(device);
-    scene->AddModel(plane);
+	Model* obj = Model::loadModel(device, transferCommandPool, "\\obj\\chalet2.obj" );
+	obj->SetTexture(houseImage);
+
+	//Model* obj = Model::loadModel(device, transferCommandPool, "\\obj\\helicopter.obj" );
+	//obj->SetTexture(houseImage);
+
+	Blades* blades = new Blades(device, transferCommandPool, planeDim);
+
+	Scene* scene = new Scene(device);
+	//scene->AddModel(plane);
+	scene->AddModel(obj);
+
+
     scene->AddBlades(blades);
+
+	vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
 
     renderer = new Renderer(device, swapChain, scene, camera);
 
@@ -145,8 +190,25 @@ int main() {
 
     while (!ShouldQuit()) {
         glfwPollEvents();
-        scene->UpdateTime();
-        renderer->Frame();
+
+		currentTime = (double)time(NULL);
+
+		fpstracker++;
+
+		if (currentTime - oldTime >= 1) {
+
+			fps = (int)(fpstracker / (currentTime - oldTime));
+			fpstracker = 0;
+			oldTime = currentTime;
+
+			std::string title = "Vulkan Grass Rendering " + convertToString(fps) + " FPS " + convertToString(1000.0/(double)fps) + " ms";
+			glfwSetWindowTitle(GetGLFWWindow(), title.c_str());
+		}
+
+		scene->UpdateTime();
+		renderer->Frame();
+
+		
     }
 
     vkDeviceWaitIdle(device->GetVkDevice());
@@ -154,8 +216,12 @@ int main() {
     vkDestroyImage(device->GetVkDevice(), grassImage, nullptr);
     vkFreeMemory(device->GetVkDevice(), grassImageMemory, nullptr);
 
+	vkDestroyImage(device->GetVkDevice(), houseImage, nullptr);
+	vkFreeMemory(device->GetVkDevice(), houseImageMemory, nullptr);
+
     delete scene;
     delete plane;
+	delete obj;
     delete blades;
     delete camera;
     delete renderer;

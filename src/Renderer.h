@@ -7,76 +7,90 @@
 
 class Renderer {
 public:
-    Renderer() = delete;
-    Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* camera);
-    ~Renderer();
+	Renderer() = delete;
+	Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* camera);
+	~Renderer();
 
-    void CreateCommandPools();
+	void CreateCommandPools();
 
-    void CreateRenderPass();
+	void CreateRenderPass();
 
-    void CreateCameraDescriptorSetLayout();
-    void CreateModelDescriptorSetLayout();
-    void CreateTimeDescriptorSetLayout();
-    void CreateComputeDescriptorSetLayout();
+	void CreateCameraDescriptorSetLayout();
 
-    void CreateDescriptorPool();
+	void CreateGrassDescriptorSetLayout();
+	void CreateModelDescriptorSetLayout();
+	
+	
+	void CreateTimeDescriptorSetLayout();
+	void CreateComputeDescriptorSetLayout();
 
-    void CreateCameraDescriptorSet();
-    void CreateModelDescriptorSets();
-    void CreateGrassDescriptorSets();
-    void CreateTimeDescriptorSet();
-    void CreateComputeDescriptorSets();
+	void CreateDescriptorPool();
 
-    void CreateGraphicsPipeline();
-    void CreateGrassPipeline();
-    void CreateComputePipeline();
+	void CreateCameraDescriptorSet();
+	void CreateModelDescriptorSets();
+	void CreateGrassDescriptorSets();
+	void CreateTimeDescriptorSet();
+	void CreateComputeDescriptorSets();
 
-    void CreateFrameResources();
-    void DestroyFrameResources();
-    void RecreateFrameResources();
+	void CreateGraphicsPipeline();
+	void CreateGrassPipeline();
+	void CreateComputePipeline();
 
-    void RecordCommandBuffers();
-    void RecordComputeCommandBuffer();
+	void CreateFrameResources();
+	void DestroyFrameResources();
+	void RecreateFrameResources();
 
-    void Frame();
+	void RecordCommandBuffers();
+	void RecordComputeCommandBuffer();
+
+	void Frame();
 
 private:
-    Device* device;
-    VkDevice logicalDevice;
-    SwapChain* swapChain;
-    Scene* scene;
-    Camera* camera;
+	Device* device;
+	VkDevice logicalDevice;
+	SwapChain* swapChain;
+	Scene* scene;
+	Camera* camera;
 
-    VkCommandPool graphicsCommandPool;
-    VkCommandPool computeCommandPool;
+	VkCommandPool graphicsCommandPool;
+	VkCommandPool computeCommandPool;
 
-    VkRenderPass renderPass;
+	VkRenderPass renderPass;
 
-    VkDescriptorSetLayout cameraDescriptorSetLayout;
-    VkDescriptorSetLayout modelDescriptorSetLayout;
-    VkDescriptorSetLayout timeDescriptorSetLayout;
-    
-    VkDescriptorPool descriptorPool;
+	VkDescriptorSetLayout cameraDescriptorSetLayout;
+	VkDescriptorSetLayout modelDescriptorSetLayout;
+	VkDescriptorSetLayout grassDescriptorSetLayout;
+	VkDescriptorSetLayout timeDescriptorSetLayout;
 
-    VkDescriptorSet cameraDescriptorSet;
-    std::vector<VkDescriptorSet> modelDescriptorSets;
-    VkDescriptorSet timeDescriptorSet;
+	VkDescriptorSetLayout computeDescriptorSetLayout;
 
-    VkPipelineLayout graphicsPipelineLayout;
-    VkPipelineLayout grassPipelineLayout;
-    VkPipelineLayout computePipelineLayout;
+	VkDescriptorPool descriptorPool;
 
-    VkPipeline graphicsPipeline;
-    VkPipeline grassPipeline;
-    VkPipeline computePipeline;
+	VkDescriptorSet cameraDescriptorSet;
+	std::vector<VkDescriptorSet> modelDescriptorSets;
+	VkDescriptorSet timeDescriptorSet;
 
-    std::vector<VkImageView> imageViews;
-    VkImage depthImage;
-    VkDeviceMemory depthImageMemory;
-    VkImageView depthImageView;
-    std::vector<VkFramebuffer> framebuffers;
+	std::vector <VkDescriptorSet> grassDescriptorSets;
+	std::vector<VkDescriptorSet> computeDescriptorSets;
 
-    std::vector<VkCommandBuffer> commandBuffers;
-    VkCommandBuffer computeCommandBuffer;
+	VkPipelineLayout graphicsPipelineLayout;
+	VkPipelineLayout grassPipelineLayout;
+	VkPipelineLayout computePipelineLayout;
+
+	VkPipeline graphicsPipeline;
+	VkPipeline grassPipeline;
+	VkPipeline computePipeline;
+
+	std::vector<VkImageView> imageViews;
+	VkImage depthImage;
+	VkDeviceMemory depthImageMemory;
+	VkImageView depthImageView;
+	std::vector<VkFramebuffer> framebuffers;
+
+	VkImageView depthTextureView;
+
+	std::vector<VkCommandBuffer> commandBuffers;
+	VkCommandBuffer computeCommandBuffer;
+
+	VkFormat depthFormat;
 };

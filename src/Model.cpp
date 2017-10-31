@@ -2,6 +2,17 @@
 #include "BufferUtils.h"
 #include "Image.h"
 
+
+
+char * ConvertWCtoC(const wchar_t* str)
+{
+	char* pStr;
+	int strSize = WideCharToMultiByte(CP_ACP, 0, str, -1, NULL, 0, NULL, NULL);
+	pStr = new char[strSize];
+	WideCharToMultiByte(CP_ACP, 0, str, -1, pStr, strSize, 0, 0);
+	return pStr;
+}
+
 Model::Model(Device* device, VkCommandPool commandPool, const std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices)
   : device(device), vertices(vertices), indices(indices) {
 
@@ -15,6 +26,87 @@ Model::Model(Device* device, VkCommandPool commandPool, const std::vector<Vertex
 
     modelBufferObject.modelMatrix = glm::mat4(1.0f);
     BufferUtils::CreateBufferFromData(device, commandPool, &modelBufferObject, sizeof(ModelBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, modelBuffer, modelBufferMemory);
+}
+
+Model* Model::loadModel(Device* device, VkCommandPool commandPool, std::string path)
+{
+	std::vector<tinyobj::shape_t> shapes;
+	std::vector<tinyobj::material_t> _materials;
+	//tinyobj::attrib_t att;
+
+	DWORD DW = 1024;
+	WCHAR FilePath[MAX_PATH];
+
+	GetModuleFileNameW(NULL, FilePath, DW);
+	std::wstring source(FilePath);
+
+	size_t lastposition;
+	UINT i = 0;
+	while (i < 3)
+	{
+		lastposition = source.rfind(L"\\", source.length());
+		source = source.substr(0, lastposition);
+		i++;
+	}
+
+	char * tempPath = ConvertWCtoC(source.c_str());
+	char * newPath = new char[MAX_PATH];
+	strcpy(newPath, tempPath);
+
+	delete[] tempPath;
+
+	strcat(newPath, path.c_str());
+
+	std::string errors = tinyobj::LoadObj(shapes, _materials, newPath);
+	std::cout << errors << std::endl;
+	if (errors.size() == 0)
+	{
+		int min_idx = 0;
+		//Read the information from the vector of shape_ts
+		for (unsigned int i = 0; i < shapes.size(); i++)
+		{
+			std::vector<unsigned int> indices = shapes[i].mesh.indices;
+
+			std::vector<glm::vec3> Vpositions;
+			std::vector<glm::vec3> Vnormals;
+			std::vector<glm::vec2> Vuvs;
+			std::vector<Vertex> vertices;
+
+			std::vector<float> &positions = shapes[i].mesh.positions;
+			std::vector<float> &normals = shapes[i].mesh.normals;
+			std::vector<float> &uvs = shapes[i].mesh.texcoords;			
+
+			for (unsigned int j = 0; j < positions.size() / 3; j++)
+			{
+				Vpositions.push_back(glm::vec3(positions[j * 3], positions[j * 3 + 1], positions[j * 3 + 2]));
+			}
+
+			for (unsigned int j = 0; j < normals.size() / 3; j++)
+			{
+				Vnormals.push_back(glm::vec3(normals[j * 3], normals[j * 3 + 1], normals[j * 3 + 2]));
+			}
+
+			for (unsigned int j = 0; j < uvs.size() / 2; j++)
+			{
+				Vuvs.push_back(glm::vec2(uvs[j * 2], 1.0 - uvs[j * 2 + 1]));
+			}
+
+
+			for (unsigned int j = 0; j < positions.size() / 3; j++)
+			{
+				Vertex temp;
+				temp.pos = Vpositions[j];
+				temp.color = glm::vec3(1.0f);
+				temp.texCoord = Vuvs[j];
+				
+				vertices.push_back(temp);
+			}
+
+			return new Model(device, commandPool, vertices, indices);
+		}
+	}
+
+	return NULL;
 }
 
 Model::~Model() {
@@ -53,9 +145,9 @@ void Model::SetTexture(VkImage texture) {
     samplerInfo.minFilter = VK_FILTER_LINEAR;
 
     // Addressing mode
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;// VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;// VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;// VK_SAMPLER_ADDRESS_MODE_REPEAT;
 
     // Anisotropic filtering
     samplerInfo.anisotropyEnable = VK_TRUE;

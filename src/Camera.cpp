@@ -25,6 +25,13 @@ VkBuffer Camera::GetBuffer() const {
     return buffer;
 }
 
+void Camera::UpdateAspectRatio(float aspectRatio) {
+
+	cameraBufferObject.projectionMatrix = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f);
+	cameraBufferObject.projectionMatrix[1][1] *= -1; // y-coordinate is flipped
+	memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
+}
+
 void Camera::UpdateOrbit(float deltaX, float deltaY, float deltaZ) {
     theta += deltaX;
     phi += deltaY;

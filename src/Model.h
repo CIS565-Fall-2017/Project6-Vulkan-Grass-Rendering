@@ -7,6 +7,10 @@
 #include "Vertex.h"
 #include "Device.h"
 
+#include "tiny_obj_loader.h"
+
+#include <iostream>
+
 struct ModelBufferObject {
     glm::mat4 modelMatrix;
 };
@@ -35,6 +39,7 @@ protected:
 public:
     Model() = delete;
     Model(Device* device, VkCommandPool commandPool, const std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices);
+	static Model* loadModel(Device* device, VkCommandPool commandPool, std::string path);
     virtual ~Model();
 
     void SetTexture(VkImage texture);
