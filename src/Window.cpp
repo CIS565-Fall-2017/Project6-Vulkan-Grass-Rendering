@@ -18,8 +18,7 @@ void InitializeWindow(int width, int height, const char* name) {
     if (!glfwVulkanSupported()){
         fprintf(stderr, "Vulkan not supported\n");
         exit(EXIT_FAILURE);
-    }
-
+    }	
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     window = glfwCreateWindow(width, height, name, nullptr, nullptr);
 

@@ -45,15 +45,16 @@ namespace {
 
   // Specify the swap extent (resolution) of the swap chain
   VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window) {
-      if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
-          return capabilities.currentExtent;
-      } else {
+      //if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+      //    return capabilities.currentExtent;
+      //} else
+	  {
           int width, height;
           glfwGetWindowSize(window, &width, &height);
           VkExtent2D actualExtent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
 
-          actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
-          actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
+          //actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
+          //actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
 
           return actualExtent;
       }
@@ -78,6 +79,7 @@ void SwapChain::Create() {
     auto* instance = device->GetInstance();
 
     const auto& surfaceCapabilities = instance->GetSurfaceCapabilities();
+
 
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(instance->GetSurfaceFormats());
     VkPresentModeKHR presentMode = chooseSwapPresentMode(instance->GetPresentModes());
@@ -188,8 +190,11 @@ VkSemaphore SwapChain::GetRenderFinishedVkSemaphore() const {
     return renderFinishedSemaphore;
 }
 
-void SwapChain::Recreate() {
-    Destroy();
+void SwapChain::Recreate(int width, int height) {
+    Destroy();	
+
+	glfwSetWindowSize(GetGLFWWindow(), width, height);
+
     Create();
 }
 
@@ -204,7 +209,10 @@ bool SwapChain::Acquire() {
     }
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-        Recreate();
+
+		int width, height;
+		glfwGetWindowSize(GetGLFWWindow(), &width, &height);
+        Recreate(width, height);
         return false;
     }
 
@@ -233,7 +241,9 @@ bool SwapChain::Present() {
     }
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
-        Recreate();
+		int width, height;
+		glfwGetWindowSize(GetGLFWWindow(), &width, &height);
+		Recreate(width, height);
         return false;
     }
 
