@@ -9,21 +9,20 @@ Vulkan Grass Rendering
 
 ### Overview
 
-In this project, I implemented the contents of the paper, [Responsive Real-Time Grass Rendering for General 3D Scenes](https://www.cg.tuwien.ac.at/research/publications/2017/JAHRMANN-2017-RRTG/JAHRMANN-2017-RRTG-draft.pdf) with using Vulkan to implement a grass simulator and renderer. <br />
-I used compute shaders to perform physics calculations on Bezier curves that represent individual
-grass blades in your application.<br /> Since rendering every grass blade on every frame will is fairly
-inefficient, I also used compute shaders to cull grass blades that don't contribute to a given frame. <br />
-I wrote a vertex shader to transform Bezier control points, tessellation shaders to dynamically create
-the grass geometry from the Bezier curves, and a fragment shader to shade the grass blades.<br />
+In this project, I implemented the contents of the paper, [Responsive Real-Time Grass Rendering for General 3D Scenes](https://www.cg.tuwien.ac.at/research/publications/2017/JAHRMANN-2017-RRTG/JAHRMANN-2017-RRTG-draft.pdf) with using Vulkan to implement a grass simulator and renderer. I used compute shaders to perform physics calculations on Bezier curves that represent individual
+grass blades in your application.<br />
+Since rendering every grass blade on every frame will is fairly inefficient, I also used compute shaders to cull grass blades that don't contribute to a given frame.
+I wrote a vertex shader to transform Bezier control points, tessellation shaders to dynamically create the grass geometry from the Bezier curves, and a fragment shader to shade the grass blades.<br />
+<br />
 
 ![](img/straightWind.gif)
-< Straight wave >
+<br />< Straight wave ><br />
 
 ![](img/heliWind.gif)
-< Helicopter wave >
+<br />< Helicopter wave ><br />
 
 ![](img/heliWind2.gif)
-< Helicopter wave >
+<br />< Helicopter wave ><br /><br />
 
 
 ### Complete requirements
@@ -45,20 +44,22 @@ the grass geometry from the Bezier curves, and a fragment shader to shade the gr
 #### Simulating Forces
 
 In additional, with windDirectionalAlignment from paper, I also made stronger stiffness value for vertices close to the ground.<br />
-Because, the wind force is not the only force to restict grass' movement. <br />
+Because, the wind force is not the only force to restrict grass' movement. <br /><br />
 
 
 #### Culling tests
 
-When we do View-frustum culling, if we just clip our grass with NDC values, and if we change the direction of view rapidly, empty area can be generated.<br />
+When we do View-frustum culling, if we just clip our grass with NDC values, and if we change the direction of view rapidly, empty area can be generated.
 Simply, instead of cliping with 1.0 and -1.0 value for X and Y coordinate, using larger values, in terms of absoulte value, can address this problem.<br />
-And, I tested 5 positions (v0, v2, mid point ((1/4)v0 * (1/2)v1 * (1/4)v2), mid point between v0 and mid, mid point between mid and v2) whether it should be clipped or not. <br />
-Because, it seemed still not enough to decide it with just using 3 points. <br />
+And, I tested 5 positions (v0, v2, mid point ((1/4)v0 * (1/2)v1 * (1/4)v2), mid point between v0 and mid, mid point between mid and v2) whether it should be clipped or not.
+Because, it seemed still not enough to decide it with just using 3 points. <br /><br />
 
 |  Threshold | 0.2 | 0.5 | 0.8 | 
 | ---------- | --- | --- | --- |
 | View-frustum culling | ![](img/distCull02.png) | ![](img/distCull05.png) | ![](img/distCull08.png) |
 
+<br />
+<br />
 
 #### Tessellation for varying levels of detail 
 
@@ -66,7 +67,9 @@ Because, it seemed still not enough to decide it with just using 3 points. <br /
 | ----------- | ----------- | ----------- | ----------- |
 | Tessellation | ![](img/minLod.png) | ![](img/maxLod.png) | ![](img/mixLod.png) |
 
-
+<br />
+<br />
+<br />
 
 ### Performance Analysis
 
@@ -82,6 +85,8 @@ Resolution		 		       : 800 x 600<br />
 |   without culling  | 1.40 | 2.40 | 4.40 | 8.60 | 17.0 | 33.0 | 67.0 |
 |  with all culling  | 0.37 | 0.47 | 0.70 | 1.02 | 1.73 | 3.28 | 6.33 |
 
+<br />
+<br />
 
 #### Orientation culling vs View-frustum culling vs Distance culling
 
