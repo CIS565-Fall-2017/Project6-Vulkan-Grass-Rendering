@@ -37,6 +37,7 @@ I wrote a vertex shader to transform Bezier control points, tessellation shaders
 		- Tessellation control shader
 		- Tessellation evaluation shader
 		- Fragment shader
+		
 - Additional Features
 	- Tessellate to varying levels of detail 
 
@@ -56,7 +57,7 @@ Because, it seemed still not enough to decide it with just using 3 points. <br /
 
 |  Threshold | 0.2 | 0.5 | 0.8 | 
 | ---------- | --- | --- | --- |
-| View-frustum culling | ![](img/distCull02.png) | ![](img/distCull05.png) | ![](img/distCull08.png) |
+| Distance culling | ![](img/distCull02.png) | ![](img/distCull05.png) | ![](img/distCull08.png) |
 
 <br />
 <br />
@@ -83,7 +84,7 @@ Resolution		 		       : 800 x 600<br />
 |  Number of blades  | 2^15 | 2^16 | 2^17 | 2^18 | 2^19 | 2^20 | 2^21 |
 | ------------------ | ---- | ---- | ---- | ---- | ---- | ---- | ---- |
 |   without culling  | 1.40 | 2.40 | 4.40 | 8.60 | 17.0 | 33.0 | 67.0 |
-|  with all culling  | 0.37 | 0.47 | 0.70 | 1.02 | 1.73 | 3.28 | 6.33 |
+|   All culling  | 0.37 | 0.47 | 0.70 | 1.02 | 1.73 | 3.28 | 6.33 |
 
 <br />
 <br />
