@@ -53,13 +53,13 @@ bool inBounds(float value, float bounds) {
 
 void main() {
 	// Reset the number of blades to 0
-	uint index = gl_GlobalInvocationID.x;
-	if (index == 0) {
+	if (gl_GlobalInvocationID.x == 0) {
 		numBlades.vertexCount = 0;
 	}
 	barrier(); // Wait till all threads reach this point
 
     // TODO: Apply forces on every blade and update the vertices in the buffer
+	uint index = gl_GlobalInvocationID.x;
 	Blade blade = blades[index];
 
 	// blade parameters
@@ -67,19 +67,91 @@ void main() {
 	vec3 v1 = blade.v1.xyz;
 	vec3 v2 = blade.v2.xyz;
 	vec3 up = blade.up.xyz;
-	float orientation = blade.v0.w;
-	float height = blade.v1.w;
+	float angle = blade.v0.w;
+	float h = blade.v1.w;
 	float width = blade.v2.w;
 	float stiffness = blade.v2.w;
+	vec3 f = normalize(cross(up, vec3(cos(angle), 0.0, sin(angle))));
 
-	// gravity
+	// natural forces
+	// 1. gravity
+	vec3 gE = vec3(0.0, -9.8, 0.0);
+	vec3 gF = 0.25 * length(gE) * f;
+	vec3 g = gE + gF;
 	
-	// recovery
+	// 2. recovery
+	vec3 r = (v0 + h * v1 - v2) * stiffness;
 
-	// wind
+	// 3. wind
+	vec3 wi;
+	float fd = 1.0 - abs(dot(normalize(wi), normalize(v2 - v0)));
+	float fr = dot(v2 - v0, up) / h;
+	float theta = fd * fr;
+	vec3 w = wi * theta;
+
+	vec3 vdt = (g + r + w) * deltaTime;
+	vec3 new_v2 = v2 + vdt;
+
+	// state validation
+	// 1. v2 above local plane
+	v2 = v2 - up * min(dot(up, v2 - v0), 0.0);
+
+	// 2. always has slight curvature
+	lproj = length(v2 - v0 - up * dot(v2 - v0, up));
+	v1 = v0 + h * up * max(1.0 - lproj / h, 0.05 * max(lproj / h, 1.0));
+
+	// 3. length of Bezier not larger than blade height
+	float L0 = distance(v0, v2);
+	float L1 = distance(v0, v1) + distance(v1, v2);
+	float n = 2.0;
+	float L = (2.0 * L0 + (n - 1.0) * L1) / (n + 1.0);
+	float r = h / L;
+	v1 = v0 + r * (v1 - v0);
+	v2 = v1corr + r * (v2 - v1);
+
+	blade.v1.xyz = v1;
+	blade.v2.xyz = v2;
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
+
+	// 1. orientation culling
+	mat4 invView = inverse(camera.view);
+	vec3 view_WS = (invView * vec4(0.0, 0.0, 1.0, 0.0)).xyz;
+	bool culled_orient = abs(dot(view_WS, f)) > 0.9;
+
+	// 2. view-frustum culling
+	float tolerance = 3.0;
+	float homo;
+	bool culled_frustum = false;
+
+	vec4 v0_NDC = camera.proj * camera.view * vec4(v0, 1.0);
+	homo = v0_NDC.w;
+	culled_frustum = !inBounds(v0_NDC.x, homo + tolerance) || !inBounds(v0_NDC.y, homo + tolerance);
+	
+	if (!culled_frustum) {
+		vec3 m = 0.25 * v0 + 0.5 * v1 + 0.25 * v2;
+		vec4 m_NDC = camera.proj * camera.view * vec(m, 1.0);
+		homo = m_NDC.w;
+		culled_frustum = !inBounds(m_NDC.x, homo + tolerance) || !inBounds(m_NDC.y, homo + tolerance);
+	}
+	
+	if (!culled_frustum) {
+		vec4 v2_NDC = camera.proj * camera.view * vec4(v1, 1.0);
+		homo = v2_NDC.w;
+		culled_frustum = !inBounds(v2_NDC.x, homo + tolerance) || !inBounds(v2_NDC.y, homo + tolerance);
+	}
+	
+	// 3. distance culling
+	vec3 c = (invView * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+	float dproj = length(v0 - c - up * dot(up, v0 - c));
+	float dmax = 100.0;
+	float num_buckets = 10.0;
+	bool culled_distance = index%num_buckets < floor(num_buckets * (1.0 - dproj/dmax));
+
+	if (!culled_orient && !culled_frustum && !culled_distance) {
+		culledBlades[atomicAdd(numBlades.vertexCount, 1)] = blade;
+	}
 }
