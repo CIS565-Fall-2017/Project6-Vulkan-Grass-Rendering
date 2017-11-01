@@ -77,19 +77,19 @@ void main() {
 	// 1. gravity
 	vec3 gE = vec3(0.0, -9.8, 0.0);
 	vec3 gF = 0.25 * length(gE) * f;
-	vec3 g = gE + gF;
+	vec3 gravity = gE + gF;
 	
 	// 2. recovery
-	vec3 r = (v0 + h * v1 - v2) * stiffness;
+	vec3 recovery = (v0 + h * v1 - v2) * stiffness;
 
 	// 3. wind
 	vec3 wi;
 	float fd = 1.0 - abs(dot(normalize(wi), normalize(v2 - v0)));
 	float fr = dot(v2 - v0, up) / h;
 	float theta = fd * fr;
-	vec3 w = wi * theta;
+	vec3 wind = wi * theta;
 
-	vec3 vdt = (g + r + w) * deltaTime;
+	vec3 vdt = (gravity + recovery + wind) * deltaTime;
 	vec3 new_v2 = v2 + vdt;
 
 	// state validation
@@ -97,7 +97,7 @@ void main() {
 	v2 = v2 - up * min(dot(up, v2 - v0), 0.0);
 
 	// 2. always has slight curvature
-	lproj = length(v2 - v0 - up * dot(v2 - v0, up));
+	float lproj = length(v2 - v0 - up * dot(v2 - v0, up));
 	v1 = v0 + h * up * max(1.0 - lproj / h, 0.05 * max(lproj / h, 1.0));
 
 	// 3. length of Bezier not larger than blade height
@@ -107,7 +107,7 @@ void main() {
 	float L = (2.0 * L0 + (n - 1.0) * L1) / (n + 1.0);
 	float r = h / L;
 	v1 = v0 + r * (v1 - v0);
-	v2 = v1corr + r * (v2 - v1);
+	v2 = v1 + r * (v2 - v1);
 
 	blade.v1.xyz = v1;
 	blade.v2.xyz = v2;
@@ -133,7 +133,7 @@ void main() {
 	
 	if (!culled_frustum) {
 		vec3 m = 0.25 * v0 + 0.5 * v1 + 0.25 * v2;
-		vec4 m_NDC = camera.proj * camera.view * vec(m, 1.0);
+		vec4 m_NDC = camera.proj * camera.view * vec4(m, 1.0);
 		homo = m_NDC.w;
 		culled_frustum = !inBounds(m_NDC.x, homo + tolerance) || !inBounds(m_NDC.y, homo + tolerance);
 	}
@@ -149,7 +149,7 @@ void main() {
 	float dproj = length(v0 - c - up * dot(up, v0 - c));
 	float dmax = 100.0;
 	float num_buckets = 10.0;
-	bool culled_distance = index%num_buckets < floor(num_buckets * (1.0 - dproj/dmax));
+	bool culled_distance = mod(index, num_buckets) < floor(num_buckets * (1.0 - dproj/dmax));
 
 	if (!culled_orient && !culled_frustum && !culled_distance) {
 		culledBlades[atomicAdd(numBlades.vertexCount, 1)] = blade;

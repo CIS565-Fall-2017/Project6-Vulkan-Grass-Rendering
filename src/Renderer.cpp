@@ -245,7 +245,7 @@ void Renderer::CreateDescriptorPool() {
         // Time (compute)
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , 1 },
 
-        // TODO: Add any additional types and counts of descriptors you will need to allocate QUESTION
+        // TODO: Add any additional types and counts of descriptors you will need to allocate
 		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER , 3 }
     };
 
@@ -433,13 +433,14 @@ void Renderer::CreateComputeDescriptorSets() {
 		throw std::runtime_error("Failed to allocate descriptor set");
 	}
 
+	std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
+
 	// Configure the descriptor to refer to blade buffer
 	VkDescriptorBufferInfo bladesBufferInfo = {};
 	bladesBufferInfo.buffer = scene->GetBlades()[0]->GetBladesBuffer();
 	bladesBufferInfo.offset = 0;
 	bladesBufferInfo.range = NUM_BLADES * sizeof(Blade);
 
-	std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
 	descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 	descriptorWrites[0].dstSet = computeDescriptorSet;
 	descriptorWrites[0].dstBinding = 0;
@@ -456,10 +457,9 @@ void Renderer::CreateComputeDescriptorSets() {
 	culledBladesBufferInfo.offset = 0;
 	culledBladesBufferInfo.range = NUM_BLADES * sizeof(Blade);
 
-	std::array<VkWriteDescriptorSet, 1> descriptorWrites = {};
 	descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 	descriptorWrites[1].dstSet = computeDescriptorSet;
-	descriptorWrites[1].dstBinding = 0;
+	descriptorWrites[1].dstBinding = 1;
 	descriptorWrites[1].dstArrayElement = 0;
 	descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	descriptorWrites[1].descriptorCount = 1;
@@ -471,12 +471,11 @@ void Renderer::CreateComputeDescriptorSets() {
 	VkDescriptorBufferInfo numBladesBufferInfo = {};
 	numBladesBufferInfo.buffer = scene->GetBlades()[0]->GetNumBladesBuffer();
 	numBladesBufferInfo.offset = 0;
-	numBladesBufferInfo.range = NUM_BLADES * sizeof(BladeDrawIndirect);
+	numBladesBufferInfo.range = sizeof(BladeDrawIndirect);
 
-	std::array<VkWriteDescriptorSet, 1> descriptorWrites = {};
 	descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 	descriptorWrites[2].dstSet = computeDescriptorSet;
-	descriptorWrites[2].dstBinding = 0;
+	descriptorWrites[2].dstBinding = 2;
 	descriptorWrites[2].dstArrayElement = 0;
 	descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	descriptorWrites[2].descriptorCount = 1;
@@ -1011,6 +1010,8 @@ void Renderer::RecordComputeCommandBuffer() {
 
     // TODO: For each group of blades bind its descriptor set and dispatch
 	vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 1, 1, &computeDescriptorSet, 0, nullptr);
+
+	vkCmdDispatch(computeCommandBuffer, WORKGROUP_SIZE, 1, 1);
 
     // ~ End recording ~
     if (vkEndCommandBuffer(computeCommandBuffer) != VK_SUCCESS) {

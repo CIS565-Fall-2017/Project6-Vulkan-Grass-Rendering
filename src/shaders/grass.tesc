@@ -9,22 +9,34 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 } camera;
 
 // TODO: Declare tessellation control shader inputs and outputs
-layout(binding = 0) in vec4 v0;
-layout(binding = 1) in vec4 v1;
-layout(binding = 2) in vec4 v2;
-layout(binding = 3) in vec4 up;
+layout(location = 0) in vec4 v0_i[];
+layout(location = 1) in vec4 v1_i[];
+layout(location = 2) in vec4 v2_i[];
+layout(location = 3) in vec4 up_i[];
+
+layout(location = 0) out vec4 v0_o[];
+layout(location = 1) out vec4 v1_o[];
+layout(location = 2) out vec4 v2_o[];
+layout(location = 3) out vec4 up_o[];
 
 void main() {
 	// Don't move the origin location of the patch
     gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
 
 	// TODO: Write any shader outputs
-
+	v0_o[gl_InvocationID] = v0_i[gl_InvocationID];
+	v1_o[gl_InvocationID] = v1_i[gl_InvocationID];
+	v2_o[gl_InvocationID] = v2_i[gl_InvocationID];
+	up_o[gl_InvocationID] = up_i[gl_InvocationID];
+	
 	// TODO: Set level of tesselation
-    // gl_TessLevelInner[0] = ???
-    // gl_TessLevelInner[1] = ???
-    // gl_TessLevelOuter[0] = ???
-    // gl_TessLevelOuter[1] = ???
-    // gl_TessLevelOuter[2] = ???
-    // gl_TessLevelOuter[3] = ???
+	float divisions = v1_i[gl_InvocationID].w;
+    gl_TessLevelInner[0] = 1.0; // horizonal tessellation
+	gl_TessLevelOuter[1] = 1.0; // edge 2-3
+    gl_TessLevelOuter[3] = 1.0; // edge 0-1
+
+    gl_TessLevelInner[1] = divisions; // vertical tessellation
+    gl_TessLevelOuter[0] = divisions; // edge 0-3
+	gl_TessLevelOuter[2] = divisions; // edge 1-2
+    
 }
