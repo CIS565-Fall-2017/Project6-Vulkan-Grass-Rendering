@@ -9,6 +9,10 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 } camera;
 
 // TODO: Declare tessellation control shader inputs and outputs
+layout(binding = 0) in vec4 v0;
+layout(binding = 1) in vec4 v1;
+layout(binding = 2) in vec4 v2;
+layout(binding = 3) in vec4 up;
 
 void main() {
 	// Don't move the origin location of the patch
