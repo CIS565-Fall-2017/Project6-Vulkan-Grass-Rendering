@@ -17,10 +17,10 @@ void main() {
 	// TODO: Write any shader outputs
 
 	// TODO: Set level of tesselation
-    // gl_TessLevelInner[0] = ???
-    // gl_TessLevelInner[1] = ???
-    // gl_TessLevelOuter[0] = ???
-    // gl_TessLevelOuter[1] = ???
-    // gl_TessLevelOuter[2] = ???
-    // gl_TessLevelOuter[3] = ???
+     gl_TessLevelInner[0] = 2.0;
+     gl_TessLevelInner[1] = 2.0;
+     gl_TessLevelOuter[0] = 2.0;
+     gl_TessLevelOuter[1] = 2.0;
+     gl_TessLevelOuter[2] = 2.0;
+     gl_TessLevelOuter[3] = 2.0;
 }

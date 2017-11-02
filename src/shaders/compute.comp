@@ -12,29 +12,39 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 layout(set = 1, binding = 0) uniform Time {
     float deltaTime;
     float totalTime;
-};
+}time;
 
 struct Blade {
     vec4 v0; //Orientation: the orientation of the grass blade's face
     vec4 v1; //Height: the height of the grass blade
     vec4 v2; //Width: the width of the grass blade's face
     vec4 up; //Stiffness coefficient: the stiffness of our grass blade, which will affect the force computations on our blade
-};
+	};
 
 // TODO: Add bindings to:
 // 1. Store the input blades
 // 2. Write out the culled blades
 // 3. Write the total number of blades remaining
 
+layout(set = 2, binding = 0) buffer Blades
+{
+    Blade blades[];
+};
+
+layout(set = 4,binding = 0) buffer CulledBlades
+{
+    Blade culledBlades[];
+};
+
 // The project is using vkCmdDrawIndirect to use a buffer as the arguments for a draw call
 // This is sort of an advanced feature so we've showed you what this buffer should look like
 //
-// layout(set = ???, binding = ???) buffer NumBlades {
-// 	  uint vertexCount;   // Write the number of blades remaining here
-// 	  uint instanceCount; // = 1
-// 	  uint firstVertex;   // = 0
-// 	  uint firstInstance; // = 0
-// } numBlades;
+ layout(set = 3, binding = 0) buffer NumBlades {
+	  uint vertexCount;   // Write the number of blades remaining here
+ 	  uint instanceCount; // = 1
+ 	  uint firstVertex;   // = 0
+ 	  uint firstInstance; // = 0
+ } numBlades;
 
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
@@ -43,14 +53,71 @@ bool inBounds(float value, float bounds) {
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
+		 numBlades.vertexCount = 0;
 	}
 	barrier(); // Wait till all threads reach this point
 
     // TODO: Apply forces on every blade and update the vertices in the buffer
+	uint index = gl_GlobalInvocationID.x;
+
+	vec3 v0 = vec3(blades[index].v0[0],blades[index].v0[1],blades[index].v0[2]);
+	vec3 v1 = vec3(blades[index].v1[0],blades[index].v1[1],blades[index].v1[2]);
+	vec3 v2 = vec3(blades[index].v2[0],blades[index].v2[1],blades[index].v2[2]);
+	vec3 up = vec3(blades[index].up[0],blades[index].up[1],blades[index].up[2]);
+
+	float direction = blades[index].v0[3];
+	float height = blades[index].v1[3];
+	float width = blades[index].v2[3];
+	float stiffness = blades[index].up[3];
+
+	//gravity
+	vec3 gravityDir = vec3(0.0,-1.0,0.0);
+	float gravityMag = 9.8;
+	vec3 gE = normalize(gravityDir) * gravityMag; 
+	vec3 bladeFront = vec3(cos(direction),0.0,sin(direction));
+	vec3 gF = (1/4) * length(gE) * bladeFront;
+	vec3 gravity = gE+gF;
+
+	//recovery
+	vec3 iv2 = vec3(v0+height*up);	
+	vec3 recovery = vec3(iv2-v2) * stiffness;
+
+	//wind
+	vec3 windDir = vec3(1.0,-0.95,-1.25);
+	float windAli = 1 - abs(dot(normalize(windDir),normalize(v2-v0)));
+	vec3 wind = windAli*windDir;
+
+	vec3 tv2 = (gravity + recovery + wind) * time.deltaTime;
+
+	float L0 = length(v2-v0);
+	float L1 = length(v2-v1)+length(v1-v0);
+	float L = (2*L0+L1)/3;
+	float r = height/L;
+	
+	vec3 v1Cor = v0+r*(v1-v0);
+	vec3 v2Cor = v1Cor+r*(v2-v1);
+	blades[index].v1[0] = v1Cor[0];
+	blades[index].v1[1] = v1Cor[1];
+	blades[index].v1[2] = v1Cor[2];
+
+	blades[index].v1[0] = v2Cor[0];
+	blades[index].v2[1] = v2Cor[1];
+	blades[index].v2[2] = v2Cor[2];
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
+
+	//orientation test
+	vec3 camBladeFront = vec3(camera.view*vec4(bladeFront,0.0));
+	if(abs(dot(camBladeFront,vec3(0.0,0.0,-1.0)))>=0.1)
+	{
+	    atomicAdd(numBlades.vertexCount,1);
+		culledBlades[index].v0 = blades[index].v0;
+		culledBlades[index].v1 = blades[index].v1;
+		culledBlades[index].v2 = blades[index].v2;
+		culledBlades[index].up = blades[index].up;
+	}
+
 }
