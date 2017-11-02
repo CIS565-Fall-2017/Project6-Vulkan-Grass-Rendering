@@ -2,6 +2,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 
 #define WORKGROUP_SIZE 32
+#define GRAVITY 9.8
 layout(local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 layout(set = 0, binding = 0) uniform CameraBufferObject {
@@ -70,31 +71,31 @@ void main() {
 	float angle = blade.v0.w;
 	float h = blade.v1.w;
 	float width = blade.v2.w;
-	float stiffness = blade.v2.w;
+	float stiffness = blade.up.w;
 	vec3 f = normalize(cross(up, vec3(sin(angle), 0.0, cos(angle))));
 
 	// natural forces
 	// 1. gravity
-	vec3 gE = vec3(0.0, -9.8, 0.0);
-	vec3 gF = 0.25 * length(gE) * f;
+	vec3 gE = vec3(0.0, -GRAVITY, 0.0);
+	vec3 gF = 0.25 * GRAVITY * f;
 	vec3 gravity = gE + gF;
 	
 	// 2. recovery
-	vec3 recovery = (v0 + h * v1 - v2) * stiffness;
+	vec3 recovery = (v0 + h * up - v2) * stiffness;
 
 	// 3. wind
-	vec3 wi = vec3(1.0, 0.0, -1.0);
+	vec3 wi = vec3(50.0, 0.0, -50.0);
 	float fd = 1.0 - abs(dot(normalize(wi), normalize(v2 - v0)));
 	float fr = dot(v2 - v0, up) / h;
 	float theta = fd * fr;
 	vec3 wind = wi * theta;
 
 	vec3 vdt = (gravity + recovery + wind) * deltaTime;
-	vec3 new_v2 = v2 + vdt;
+	v2 += vdt;
 
 	// state validation
 	// 1. v2 above local plane
-	v2 = v2 - up * min(dot(up, v2 - v0), 0.0);
+	v2 -= up * min(dot(up, v2 - v0), 0.0);
 
 	// 2. always has slight curvature
 	float lproj = length(v2 - v0 - up * dot(v2 - v0, up));
@@ -109,8 +110,8 @@ void main() {
 	v1 = v0 + r * (v1 - v0);
 	v2 = v1 + r * (v2 - v1);
 
-	blade.v1.xyz = v1;
-	blade.v2.xyz = v2;
+	blades[index].v1.xyz = v1;
+	blades[index].v2.xyz = v2;
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
@@ -121,7 +122,7 @@ void main() {
 	mat4 invView = inverse(camera.view);
 	vec3 eye_WS = (invView * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
 	vec3 viewDir = normalize(eye_WS - v0);
-	bool culled_orient = abs(dot(viewDir, f)) > 0.9;
+	bool culled_orient = abs(dot(viewDir, f)) > 0.95;
 
 	// 2. view-frustum culling
 	float tolerance = 3.0;
@@ -132,28 +133,26 @@ void main() {
 	homo = v0_NDC.w;
 	culled_frustum = !inBounds(v0_NDC.x, homo + tolerance) || !inBounds(v0_NDC.y, homo + tolerance);
 	
-	if (!culled_frustum) {
+	if (culled_frustum) {
 		vec3 m = 0.25 * v0 + 0.5 * v1 + 0.25 * v2;
 		vec4 m_NDC = camera.proj * camera.view * vec4(m, 1.0);
 		homo = m_NDC.w;
-		culled_frustum = !inBounds(m_NDC.x, homo + tolerance) || !inBounds(m_NDC.y, homo + tolerance);
+		culled_frustum = culled_frustum && (!inBounds(m_NDC.x, homo + tolerance) || !inBounds(m_NDC.y, homo + tolerance));
 	}
 	
-	if (!culled_frustum) {
+	if (culled_frustum) {
 		vec4 v2_NDC = camera.proj * camera.view * vec4(v1, 1.0);
 		homo = v2_NDC.w;
-		culled_frustum = !inBounds(v2_NDC.x, homo + tolerance) || !inBounds(v2_NDC.y, homo + tolerance);
+		culled_frustum = culled_frustum && (!inBounds(v2_NDC.x, homo + tolerance) || !inBounds(v2_NDC.y, homo + tolerance));
 	}
 	
 	// 3. distance culling
-	vec3 c = (invView * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
-	float dproj = length(v0 - c - up * dot(up, v0 - c));
+	float dproj = length(v0 - eye_WS - up * dot(up, v0 - eye_WS));
 	float dmax = 100.0;
 	float num_buckets = 10.0;
-	bool culled_distance = mod(index, num_buckets) < floor(num_buckets * (1.0 - dproj/dmax));
+	bool culled_distance = mod(index, num_buckets) > floor(num_buckets * (1.0 - dproj/dmax));
 
 	//if (!culled_orient && !culled_frustum && !culled_distance) {
-	if (!culled_orient) {
-		culledBlades[atomicAdd(numBlades.vertexCount, 1)] = blade;
-	}
+		culledBlades[atomicAdd(numBlades.vertexCount, 1)] = blades[index];
+	//}
 }
