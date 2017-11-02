@@ -12,12 +12,12 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 layout(location = 0) in vec4 v0_i[];
 layout(location = 1) in vec4 v1_i[];
 layout(location = 2) in vec4 v2_i[];
-layout(location = 3) in vec4 up_i[];
+//layout(location = 3) in vec4 up_i[]; // not used
 
 layout(location = 0) out vec4 v0_o[];
 layout(location = 1) out vec4 v1_o[];
 layout(location = 2) out vec4 v2_o[];
-layout(location = 3) out vec4 up_o[];
+//layout(location = 3) out vec4 up_o[]; // not used
 
 void main() {
 	// Don't move the origin location of the patch
@@ -30,10 +30,12 @@ void main() {
 	up_o[gl_InvocationID] = up_i[gl_InvocationID];
 	
 	// TODO: Set level of tesselation
-	float divisions = v1_i[gl_InvocationID].w;
-    gl_TessLevelInner[0] = 1.0; // horizonal tessellation
-	gl_TessLevelOuter[1] = 1.0; // edge 2-3
-    gl_TessLevelOuter[3] = 1.0; // edge 0-1
+	float depth = (camera.proj * camera.view * gl_in[gl_InvocationID].gl_Position).z; // [0, 1]
+	float divisions = floor(v1_i[gl_InvocationID].w / depth); // more divisions close to camera
+
+    gl_TessLevelInner[0] = 2.0; // horizonal tessellation
+	gl_TessLevelOuter[1] = 2.0; // edge 2-3
+    gl_TessLevelOuter[3] = 2.0; // edge 0-1
 
     gl_TessLevelInner[1] = divisions; // vertical tessellation
     gl_TessLevelOuter[0] = divisions; // edge 0-3
