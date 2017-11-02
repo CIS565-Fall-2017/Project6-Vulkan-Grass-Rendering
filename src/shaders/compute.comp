@@ -21,6 +21,20 @@ struct Blade {
     vec4 up;
 };
 
+/*
+layout(set = 2, binding = 0) buffer Blades {
+	Blade blades[];
+};
+
+layout(set = 2, binding = 1) buffer Culled {
+	
+};
+
+layout(set = 2, binding = 2) buffer NumBlades {
+
+};
+*/
+
 // TODO: Add bindings to:
 // 1. Store the input blades
 // 2. Write out the culled blades
