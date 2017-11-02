@@ -207,7 +207,11 @@ void Renderer::CreateComputeDescriptorSetLayout() {
 	sboLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 	sboLayoutBinding.pImmutableSamplers = nullptr;
 
-	std::vector<VkDescriptorSetLayoutBinding> bindings = { sboLayoutBinding };
+	std::vector<VkDescriptorSetLayoutBinding> bindings = { 
+		sboLayoutBinding,
+		{ 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr },
+		{ 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr },
+	};
 
 	// Create the descriptor set layout
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
@@ -1179,9 +1183,9 @@ void Renderer::Frame() {
 Renderer::~Renderer() {
 	vkDeviceWaitIdle(logicalDevice);
 
-	// TODO: destroy any resources you created
-
-	vkFreeCommandBuffers(logicalDevice, graphicsCommandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+	// TODO: Destroy any resources you created
+	vkFreeCommandBuffers(logicalDevice, graphicsCommandPool, 
+		static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
 	vkFreeCommandBuffers(logicalDevice, computeCommandPool, 1, &computeCommandBuffer);
 
 	vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
@@ -1195,6 +1199,7 @@ Renderer::~Renderer() {
 	vkDestroyDescriptorSetLayout(logicalDevice, cameraDescriptorSetLayout, nullptr);
 	vkDestroyDescriptorSetLayout(logicalDevice, modelDescriptorSetLayout, nullptr);
 	vkDestroyDescriptorSetLayout(logicalDevice, timeDescriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(logicalDevice, computeDescriptorSetLayout, nullptr);
 
 	vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
 
