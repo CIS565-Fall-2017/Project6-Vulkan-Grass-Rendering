@@ -79,4 +79,8 @@ private:
 
     std::vector<VkCommandBuffer> commandBuffers;
     VkCommandBuffer computeCommandBuffer;
+
+	//Additional members
+	VkDescriptorSetLayout computeDescriptorSetLayout;
+	VkDescriptorSet computeDescriptorSet;
 };
