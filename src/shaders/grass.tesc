@@ -27,7 +27,7 @@ void main() {
 	v0_o[gl_InvocationID] = v0_i[gl_InvocationID];
 	v1_o[gl_InvocationID] = v1_i[gl_InvocationID];
 	v2_o[gl_InvocationID] = v2_i[gl_InvocationID];
-	up_o[gl_InvocationID] = up_i[gl_InvocationID];
+	//up_o[gl_InvocationID] = up_i[gl_InvocationID];
 	
 	// TODO: Set level of tesselation
 	float depth = (camera.proj * camera.view * gl_in[gl_InvocationID].gl_Position).z; // [0, 1]

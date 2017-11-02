@@ -16,8 +16,8 @@ layout(location = 0) out vec4 outColor;
 void main() {
     // TODO: Compute fragment color
 
-    vec4 darkGreen = vec4();
-    vec4 lightGreen = vec4();
+    vec4 darkGreen = vec4(0.0, 0.361, 0.035, 1.0);
+    vec4 lightGreen = vec4(0.0039, 0.651, 0.0667, 1.0);
     vec4 color = mix(darkGreen, lightGreen, uv.y);
 
     vec4 ambient = vec4(0.1, 0.1, 0.1, 1.0);

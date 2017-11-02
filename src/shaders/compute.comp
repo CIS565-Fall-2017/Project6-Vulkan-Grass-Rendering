@@ -83,7 +83,7 @@ void main() {
 	vec3 recovery = (v0 + h * v1 - v2) * stiffness;
 
 	// 3. wind
-	vec3 wi;
+	vec3 wi = vec3(1.0, 0.0, -1.0);
 	float fd = 1.0 - abs(dot(normalize(wi), normalize(v2 - v0)));
 	float fr = dot(v2 - v0, up) / h;
 	float theta = fd * fr;
