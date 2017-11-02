@@ -36,6 +36,21 @@ struct Blade {
 // 	  uint firstInstance; // = 0
 // } numBlades;
 
+layout(set = 2, binding = 0) buffer InputBlades {
+    Blade inputBlades[];
+} inputBlades;
+
+layout(set = 2, binding = 1) buffer CulledBlades {
+    Blade culledBlades[];
+} culledBlades;
+
+layout(set = 2, binding = 2) buffer NumBlades {
+    uint vertexCount;
+	uint instanceCount;
+	uint firstVertex;
+	uint firstInstance;
+} numBlades;
+
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
 }
