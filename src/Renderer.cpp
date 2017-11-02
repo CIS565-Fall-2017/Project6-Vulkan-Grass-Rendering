@@ -351,7 +351,7 @@ void Renderer::CreateModelDescriptorSets() {
 void Renderer::CreateGrassDescriptorSets() {
     // TODO: Create Descriptor sets for the grass.
     // This should involve creating descriptor sets which point to the model matrix of each group of grass blades
-	VkDescriptorSetLayout layouts[] = { cameraDescriptorSetLayout };
+	VkDescriptorSetLayout layouts[] = { modelDescriptorSetLayout };
 	VkDescriptorSetAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = descriptorPool;
@@ -365,13 +365,13 @@ void Renderer::CreateGrassDescriptorSets() {
 
 	// Configure the descriptors to refer to buffers
 	VkDescriptorBufferInfo cameraBufferInfo = {};
-	cameraBufferInfo.buffer = camera->GetBuffer();
+	cameraBufferInfo.buffer = scene->GetBlades()[0]->GetModelBuffer();
 	cameraBufferInfo.offset = 0;
-	cameraBufferInfo.range = sizeof(CameraBufferObject);
+	cameraBufferInfo.range = sizeof(ModelBufferObject);
 
 	std::array<VkWriteDescriptorSet, 1> descriptorWrites = {};
 	descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrites[0].dstSet = cameraDescriptorSet;
+	descriptorWrites[0].dstSet = grassDescriptorSet;
 	descriptorWrites[0].dstBinding = 0;
 	descriptorWrites[0].dstArrayElement = 0;
 	descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1009,8 +1009,8 @@ void Renderer::RecordComputeCommandBuffer() {
     vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 1, 1, &timeDescriptorSet, 0, nullptr);
 
     // TODO: For each group of blades bind its descriptor set and dispatch
-	vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 1, 1, &computeDescriptorSet, 0, nullptr);
-
+	vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 2, 1, &computeDescriptorSet, 0, nullptr);
+	// 
 	vkCmdDispatch(computeCommandBuffer, WORKGROUP_SIZE, 1, 1);
 
     // ~ End recording ~
