@@ -37,8 +37,8 @@ void main() {
 	gl_TessLevelOuter[1] = 2.0; // edge 2-3
     gl_TessLevelOuter[3] = 2.0; // edge 0-1
 
-    gl_TessLevelInner[1] = divisions; // vertical tessellation
-    gl_TessLevelOuter[0] = divisions; // edge 0-3
-	gl_TessLevelOuter[2] = divisions; // edge 1-2
+    gl_TessLevelInner[1] = 4.0; // vertical tessellation
+    gl_TessLevelOuter[0] = 4.0; // edge 0-3
+	gl_TessLevelOuter[2] = 4.0; // edge 1-2
     
 }

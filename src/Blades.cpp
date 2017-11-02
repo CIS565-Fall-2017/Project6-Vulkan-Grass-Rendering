@@ -19,7 +19,8 @@ Blades::Blades(Device* device, VkCommandPool commandPool, float planeDim) : Mode
         float x = (generateRandomFloat() - 0.5f) * planeDim;
         float y = 0.0f;
         float z = (generateRandomFloat() - 0.5f) * planeDim;
-        float direction = generateRandomFloat() * 2.f * 3.14159265f;
+        //float direction = generateRandomFloat() * 2.f * 3.14159265f;
+		float direction = 0.f;
         glm::vec3 bladePosition(x, y, z);
         currentBlade.v0 = glm::vec4(bladePosition, direction);
 
