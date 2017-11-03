@@ -1020,10 +1020,10 @@ void Renderer::RecordComputeCommandBuffer() {
 	for (int i = 0; i < computeDescriptorSets.size(); i++)
 	{
 		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 2, 1,
-			&computeDescriptorSets[i], 0, nullptr);
+								&computeDescriptorSets[i], 0, nullptr);
+		int groupCountX = int(ceil((NUM_BLADES + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE));
+		vkCmdDispatch(computeCommandBuffer, groupCountX, 1, 1);
 	}
-	int groupCountX = (computeDescriptorSets.size() + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE;
-	vkCmdDispatch(computeCommandBuffer, groupCountX, 1, 1);
 
 	// ~ End recording ~
 	if (vkEndCommandBuffer(computeCommandBuffer) != VK_SUCCESS) {
@@ -1117,14 +1117,14 @@ void Renderer::RecordCommandBuffers() {
 			VkBuffer vertexBuffers[] = { scene->GetBlades()[j]->GetCulledBladesBuffer() };
 			VkDeviceSize offsets[] = { 0 };
 			// TODO: Uncomment this when the buffers are populated
-			//vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
+			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
 
 			// TODO: Bind the descriptor set for each grass blades model
-			//vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineLayout, 1, 1, &grassDescriptorSets[j], 0, nullptr);
+			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineLayout, 1, 1, &grassDescriptorSets[j], 0, nullptr);
 
 			// Draw
 			// TODO: Uncomment this when the buffers are populated
-			//vkCmdDrawIndirect(commandBuffers[i], scene->GetBlades()[j]->GetNumBladesBuffer(), 0, 1, sizeof(BladeDrawIndirect));
+			vkCmdDrawIndirect(commandBuffers[i], scene->GetBlades()[j]->GetNumBladesBuffer(), 0, 1, sizeof(BladeDrawIndirect));
 		}
 
 		// End render pass
