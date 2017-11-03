@@ -15,13 +15,17 @@ layout(location = 2) in vec4 v2_i[];
 //layout(location = 3) in vec4 up_i[]; // not used
 
 layout(location = 0) out vec4 position;
-layout(location = 1) out vec3 normal;
-layout(location = 2) out vec2 uv;
+layout(location = 1) out vec4 normal;
+
+float rand(vec2 co) {
+	return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+}
 
 void main() {
     float u = gl_TessCoord.x;
     float v = gl_TessCoord.y;
-    uv = vec2(u, v);
+    position.w = u;
+	normal.w = v;
 
 	// TODO: Use u and v to parameterize along the grass blade and output positions for each vertex of the grass blade
 	vec3 a = v0_i[0].xyz + v * (v1_i[0].xyz - v0_i[0].xyz);
@@ -35,12 +39,12 @@ void main() {
 	vec3 c1 = center + width * bitangent;
 
 	vec3 tangent = normalize(b - a);
-	normal = normalize(cross(tangent, bitangent));
+	normal.xyz = normalize(cross(bitangent, tangent));
 
 	float t = u - u * v * v;
 	vec3 p = mix(c0, c1, t);
 
-	position = camera.proj * camera.view * vec4(p, 1.0);
-	gl_Position = position;
+	position.xyz =  p;
+	gl_Position = camera.proj * camera.view * vec4(p, 1.0);;
 	
 }

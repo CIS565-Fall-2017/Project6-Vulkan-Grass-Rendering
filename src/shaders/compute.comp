@@ -52,6 +52,10 @@ bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
 }
 
+float rand(vec2 co) {
+	return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
@@ -84,11 +88,15 @@ void main() {
 	vec3 recovery = (v0 + h * up - v2) * stiffness;
 
 	// 3. wind
-	vec3 wi = vec3(50.0, 0.0, -50.0);
-	float fd = 1.0 - abs(dot(normalize(wi), normalize(v2 - v0)));
+	vec3 wind_dir = normalize(v0);
+	//vec3 wind_dir = vec3(1.0 + rand(v0.xz), rand(v0.xz), 1.0 + rand(v0.xz));
+	float wind_r = length(v0);
+	float wind_strength = 10.0 * cos(4.0 * totalTime + wind_r) + 10.0 * (1.0 + rand(v0.xz));
+	//float wind_strength = rand(v0.xz) * cos(totalTime) + rand(v0.xz) * sin(totalTime);
+	float fd = 1.0 - abs(dot(wind_dir, normalize(v2 - v0)));
 	float fr = dot(v2 - v0, up) / h;
 	float theta = fd * fr;
-	vec3 wind = wi * theta;
+	vec3 wind = wind_strength * wind_dir * theta;
 
 	vec3 vdt = (gravity + recovery + wind) * deltaTime;
 	v2 += vdt;
@@ -152,7 +160,7 @@ void main() {
 	float num_buckets = 10.0;
 	bool culled_distance = mod(index, num_buckets) > floor(num_buckets * (1.0 - dproj/dmax));
 
-	//if (!culled_orient && !culled_frustum && !culled_distance) {
+	if (!culled_orient && !culled_frustum && !culled_distance) {
 		culledBlades[atomicAdd(numBlades.vertexCount, 1)] = blades[index];
-	//}
+	}
 }
