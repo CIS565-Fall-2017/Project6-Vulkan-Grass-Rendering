@@ -54,7 +54,7 @@ private:
 
     VkRenderPass renderPass;
 
-	VkDescriptorSetLayout bladeDescriptorSetLayout;
+	VkDescriptorSetLayout computeDescriptorSetLayout;
     VkDescriptorSetLayout cameraDescriptorSetLayout;
     VkDescriptorSetLayout modelDescriptorSetLayout;
     VkDescriptorSetLayout timeDescriptorSetLayout;
@@ -65,7 +65,7 @@ private:
     VkDescriptorSet cameraDescriptorSet;
 	std::vector<VkDescriptorSet> modelDescriptorSets;
 	std::vector<VkDescriptorSet> grassDescriptorSets;
-	std::vector<VkDescriptorSet> bladeDescriptorSets;
+	std::vector<VkDescriptorSet> computeDescriptorSets;
     VkDescriptorSet timeDescriptorSet;
 
     VkPipelineLayout graphicsPipelineLayout;
