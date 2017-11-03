@@ -21,6 +21,10 @@ struct Blade {
     vec4 up;
 };
 
+// Constants 
+const float ACCELERATION = 5;
+const vec4 GRAVITY = vec4(0.0, -1.0, 0.0, ACCELERATION);
+
 // TODO: Add bindings to:
 // 1. Store the input blades
 // 2. Write out the culled blades
@@ -36,6 +40,25 @@ struct Blade {
 // 	  uint firstInstance; // = 0
 // } numBlades;
 
+
+
+layout(set = 2, binding = 0) buffer Blades {
+	Blade blades[];
+} blades;
+
+layout(set = 2, binding = 1) buffer CulledBlades {
+	Blade culledBlades[];
+} culledBlades;
+
+layout(set = 2, binding = 2) buffer NumBlades {
+	uint vertexCount;   // Write the number of blades remaining here
+	uint instanceCount; // = 1
+	uint firstVertex;   // = 0
+	uint firstInstance; // = 0
+} numBlades;
+
+
+
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
 }
@@ -47,7 +70,39 @@ void main() {
 	}
 	barrier(); // Wait till all threads reach this point
 
+
+	uint index = gl_GlobalInvocationID.x;
+	const int numBlades = numBlades.vertexCount;
+
     // TODO: Apply forces on every blade and update the vertices in the buffer
+	for(int i = 0; i < numBlades; i++)
+	{
+		// ---------- Calculate gravity ---------- g = gE + gF
+		
+		// Environmental gravity
+		vec3 gE = normalize(vec3(GRAVITY.xyz)) * GRAVITY.w;
+		
+		// Front gravity (blade's v0.w = direction)
+		vec3 gF = 0.25 * length(gE) * blades[i].v0.w;
+
+		vec3 g = gE + gF;
+
+		// ---------- Calculate recovery ---------- r = (iv2 - v2) * stiffness
+		// blades v1.w = height and up.w = stiffness
+		vec3 iv2 =  vec3(blades[i].up * blades[i].v1.w);		//NOT SURE IF THIS IS RIGHT?????????????????????????????????
+		vec3 r = (iv2 - vec3(blades[i].v2.xyz)) * blades[i].up.w;
+
+		// ---------- Calculate wind ----------
+		vec3 windDir = vec3(1.0);
+		vec3 windAlign = vec3(1.0);
+		vec3 w = windDir + windAlign;
+
+		// ---------- Calculate total force ----------
+		// MAKE SURE TO DO STATE VALIDATION HERE
+		vec3 tv2 = (g + r + w) * Time.deltaTime;
+
+	}//end for all grass blades 
+
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
