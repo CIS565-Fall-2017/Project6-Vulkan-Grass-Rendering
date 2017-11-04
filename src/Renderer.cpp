@@ -990,7 +990,7 @@ void Renderer::RecordComputeCommandBuffer() {
 
 	//vkCmdDispatch(computeCommandBuffer, static_cast<uint32_t>(NUM_BLADES / WORKGROUP_SIZE), 1, 1);
 
-	vkCmdDispatch(computeCommandBuffer, 2, 1, 1);
+	vkCmdDispatch(computeCommandBuffer, 6, 1, 1);
 
     // ~ End recording ~
     if (vkEndCommandBuffer(computeCommandBuffer) != VK_SUCCESS) {

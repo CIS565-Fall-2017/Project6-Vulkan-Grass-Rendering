@@ -19,5 +19,5 @@ out gl_PerVertex {
 
 void main() {
 	// TODO: Write gl_Position and any other shader outputs
-	gl_Position = v0;
+	gl_Position = vec4(vec3(v0), 1.0);
 }
