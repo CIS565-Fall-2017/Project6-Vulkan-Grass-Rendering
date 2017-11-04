@@ -21,8 +21,12 @@ struct Blade {
     vec4 up;
 };
 
-layout(set = 2, binding = 0) buffer inputBlades {
-	Blade blades[];
+layout(set = 2, binding = 0) buffer InputBlades {
+	Blade inputBlades[];
+};
+
+layout(set = 2, binding = 1) buffer CulledBlades {
+	Blade culledBlades[];
 };
 
 
@@ -38,12 +42,12 @@ layout(set = 2, binding = 0) buffer inputBlades {
 // The project is using vkCmdDrawIndirect to use a buffer as the arguments for a draw call
 // This is sort of an advanced feature so we've showed you what this buffer should look like
 //
-// layout(set = ???, binding = ???) buffer NumBlades {
-// 	  uint vertexCount;   // Write the number of blades remaining here
-// 	  uint instanceCount; // = 1
-// 	  uint firstVertex;   // = 0
-// 	  uint firstInstance; // = 0
-// } numBlades;
+ layout(set = 2, binding = 2) buffer NumBlades { 	  
+	  uint vertexCount;   // Write the number of blades remaining here
+ 	  uint instanceCount; // = 1
+ 	  uint firstVertex;   // = 0
+ 	  uint firstInstance; // = 0
+ } numBlades;
 
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
@@ -52,7 +56,7 @@ bool inBounds(float value, float bounds) {
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
+		numBlades.vertexCount = 0;
 	}
 	barrier(); // Wait till all threads reach this point
 
@@ -60,9 +64,8 @@ void main() {
 
     // TODO: Apply forces on every blade and update the vertices in the buffer
 	uint index = gl_GlobalInvocationID.x;
-	Blade blade = blades[0];
-	blades[0].v0 = vec4(1.0, 2.0, 3.0, 4.0);
-	// 
+	culledBlades[index] = inputBlades[index];
+	atomicAdd(numBlades.vertexCount, 1);
 
 	//culledBlades.data[index] = inBlades.data[index];
 
