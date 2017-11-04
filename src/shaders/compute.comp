@@ -82,5 +82,5 @@ void main() {
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
 	
-	culledBlades[atomicAdd(numBlades.vertexCount, 1)] = inputBlades[0];
+	culledBlades[atomicAdd(numBlades.vertexCount, 1)] = inputBlades[index];
 }
