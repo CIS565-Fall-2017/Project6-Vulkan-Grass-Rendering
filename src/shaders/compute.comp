@@ -36,21 +36,96 @@ struct Blade {
 // 	  uint firstInstance; // = 0
 // } numBlades;
 
+// Input blades array
+layout(set = 2, binding = 0) buffer InBlades {
+  Blade inBlades[];
+};
+
+// Culled blades array
+layout(set = 2, binding = 1) buffer OutBlades {
+  Blade outBlades[];
+};
+
+// NumBlades Info
+layout(set = 2, binding = 2) buffer NumBlades {
+ 	uint vertexCount;   // Write the number of blades remaining here
+ 	uint instanceCount; // = 1
+ 	uint firstVertex;   // = 0
+ 	uint firstInstance; // = 0
+} numBlades;
+
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
 }
 
 void main() {
 	// Reset the number of blades to 0
-	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
+  uint index = gl_GlobalInvocationID.x;
+	if (index == 0) {
+		numBlades.vertexCount = 0;
 	}
 	barrier(); // Wait till all threads reach this point
 
-    // TODO: Apply forces on every blade and update the vertices in the buffer
+  // TODO: Apply forces on every blade and update the vertices in the buffer
+  Blade blade = inBlades[index]; // read a blade..
+  vec3 v0 = blade.v0.xyz;
+  vec3 v1 = blade.v1.xyz;
+  vec3 v2 = blade.v2.xyz;
+  vec3 up = blade.up.xyz;
+  float orientation = blade.v0.w;
+  float height = blade.v1.w;
+  float width = blade.v2.w;
+  float stiffness = blade.up.w;
 
+  // gravity
+  vec4 D = vec4(0.0, -1.0, 0.0, 9.81);
+  vec3 gE = normalize(D.xyz) * D.w;
+  vec3 orientVec = vec3(sin(orientation), 0.0, cos(orientation));
+  vec3 f = normalize(cross(up, orientVec));
+  vec3 gF = 0.25 * length(gE) * f;
+  vec3 g = gE + gF;
+
+  // recovery
+  vec3 iv2 = v0 + height * up;
+  vec3 rec = (iv2 - v2) * stiffness;
+
+  // wind
+  vec3 windDir = /*normalize(v0);*/ vec3(1.0, 0.0, 1.0);
+  /*float windComp = 2.0 * sin(totalTime * 2.5 + dot(windDir + vec3(0.0, 0.0, -1.0), v0))
+                 + 3.0 * sin(totalTime * 2.5 + dot(windDir + vec3(1.0, 0.0, 0.0), v0));*/
+  float fd = 1.0 - abs(dot(normalize(windDir), normalize(v2 - v0)));
+  float fr = dot(v2 - v0, up) / height;
+  vec3 wind = windDir /** windComp*/ * fd * fr;
+
+  // total
+  vec3 vChange = (g + rec + wind)* deltaTime;
+  v2 += vChange;
+
+  // state validation
+  v2 = v2 - up * min(dot(up, (v2 - v0)), 0.0);
+  vec3 lproj = v2 - v0 - up * dot((v2 - v0), up);
+  float lph = length(lproj) / height;
+  v1 = v0 + height * up * max(1 - lph, 0.05 * max(lph, 1));
+
+  float L0 = distance(v0, v2);
+  float L1 = distance(v0, v1) + distance(v1, v2);
+  float n = 2.0; // degree of curve is 2..??
+  float L = (2.0 * L0 + (n - 1.0) * L1) / (n + 1.0);
+  float r = height / L;
+  vec3 v1old = v1;
+  v1 = v0 + r * (v1 - v0);
+  v2 = v1 + r * (v2 - v1old);
+
+  // update inBlades[]..
+  blade.v1.xyz = v1;
+  blade.v2.xyz = v2;
+  inBlades[index] = blade;
+
+  //outBlades[atomicAdd(numBlades.vertexCount, 1)] = inBlades[index];
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
+  //vec4 forward = inverse(view) * vec4(0.0, 0.0, 1.0, 0.0);
+
 }
