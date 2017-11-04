@@ -88,11 +88,11 @@ void main() {
 	vec3 recovery = (v0 + h * up - v2) * stiffness;
 
 	// 3. wind
-	vec3 wind_dir = normalize(v0);
-	//vec3 wind_dir = vec3(1.0 + rand(v0.xz), rand(v0.xz), 1.0 + rand(v0.xz));
+	//vec3 wind_dir = normalize(v0);
+	vec3 wind_dir = vec3(1.0 + rand(v0.xz), rand(v0.xz), 1.0 + rand(v0.xz));
 	float wind_r = length(v0);
-	float wind_strength = 10.0 * cos(4.0 * totalTime + wind_r) + 10.0 * (1.0 + rand(v0.xz));
-	//float wind_strength = rand(v0.xz) * cos(totalTime) + rand(v0.xz) * sin(totalTime);
+	//float wind_strength = 10.0 * cos(4.0 * totalTime + wind_r) + 10.0 * (1.0 + rand(v0.xz));
+	float wind_strength = rand(v0.xz) * cos(totalTime) + rand(v0.xz) * sin(totalTime);
 	float fd = 1.0 - abs(dot(wind_dir, normalize(v2 - v0)));
 	float fr = dot(v2 - v0, up) / h;
 	float theta = fd * fr;
