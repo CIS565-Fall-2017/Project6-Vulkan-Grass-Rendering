@@ -21,9 +21,18 @@ struct Blade {
     vec4 up;
 };
 
+layout(set = 2, binding = 0) buffer inputBlades {
+	Blade blades[];
+};
+
+
+
 // TODO: Add bindings to:
 // 1. Store the input blades
+
+
 // 2. Write out the culled blades
+
 // 3. Write the total number of blades remaining
 
 // The project is using vkCmdDrawIndirect to use a buffer as the arguments for a draw call
@@ -47,7 +56,15 @@ void main() {
 	}
 	barrier(); // Wait till all threads reach this point
 
+	float time = deltaTime + totalTime;
+
     // TODO: Apply forces on every blade and update the vertices in the buffer
+	uint index = gl_GlobalInvocationID.x;
+	Blade blade = blades[0];
+	blades[0].v0 = vec4(1.0, 2.0, 3.0, 4.0);
+	// 
+
+	//culledBlades.data[index] = inBlades.data[index];
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
