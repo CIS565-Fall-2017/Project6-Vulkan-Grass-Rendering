@@ -35,7 +35,11 @@ void main() {
 	
 	float direction = v0.w; // direction
 
-	tessellation_control_forward = vec4(normalize(vec3(sin(direction), 0.0, cos(direction))), 0.0);
+	vec3 direction_vec = normalize(vec3(sin(direction), 0.0, cos(direction)));
+
+	//vec3 forward = normalize(cross(normalize(up.xyz), direction_vec));
+
+	tessellation_control_forward = vec4(direction_vec, 0.0);
 
 	// write gl_Position as usual
 	gl_Position = model * vec4(v0.xyz, 1.0);

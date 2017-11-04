@@ -20,16 +20,16 @@ layout(location = 0) out vec4 outColor;
 void main() {
     // TODO: Compute fragment color
 
-	vec3 upperColor = vec3(0.4,0.9,0.1);
+	vec3 upperColor = vec3(0.2,1.0,0.2);
 
-	vec3 lowerColor = vec3(0.0,0.2,0.1);
+	vec3 lowerColor = vec3(0.0,0.3,0.1);
 
-	vec3 sunDirection = normalize(vec3(-1.0, 5.0, -3.0));
-
-
-	float NoL = clamp(dot(nor, sunDirection), 0.1, 1.0);
-
+	// a blend effect grass color
 	vec3 mixedColor = mix(lowerColor, upperColor, uv.y);
 
-    outColor = vec4(mixedColor * NoL, 1.0);
+	vec3 PointLightPos = normalize(vec3(-1.0, 5.0, -3.0));
+
+	float LambertTerm = clamp(dot(nor, PointLightPos), 0, 1.0) + 0.15; //simple Lambert shading + ambient light
+
+    outColor = vec4(mixedColor * LambertTerm, 1.0);
 }

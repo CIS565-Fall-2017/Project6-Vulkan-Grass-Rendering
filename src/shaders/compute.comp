@@ -29,12 +29,11 @@ struct Blade {
 // The project is using vkCmdDrawIndirect to use a buffer as the arguments for a draw call
 // This is sort of an advanced feature so we've showed you what this buffer should look like
 
-// in
+
 layout(set = 2, binding = 0) buffer Blades {
  	Blade blades[];
 };
 
-// out
 layout(set = 2, binding = 1) buffer CulledBlades {
  	Blade culledBlades[];
 };
@@ -66,6 +65,89 @@ void main() {
 
 
     // TODO: Apply forces on every blade and update the vertices in the buffer
+	
+	// Extra information we need from blade
+	vec3 v0_vec3    = thisBlade.v0.xyz;
+	float direction = thisBlade.v0.w; 
+
+	float height = thisBlade.v1.w;
+
+	vec3 v2_vec3 = thisBlade.v2.xyz;
+
+	vec3 up_vec3 = thisBlade.up.xyz;
+	float stiffnessCo = thisBlade.up.w;
+
+	
+	// Recovery force
+	vec3 iv2 = v0_vec3 + up_vec3 * height; //initial position of v2
+
+	vec3 recovery = stiffnessCo * (iv2 - v2_vec3); 
+	
+
+	// Gravity
+	float gravityAccel = 9.8;
+	vec3 gravityDir = -normalize(up_vec3); // assume gravity has the opposite direction as up
+
+	vec3 gE = gravityAccel * gravityDir;
+
+	vec3 direction_vec = normalize(vec3(sin(direction), 0.0, cos(direction)));
+
+	vec3 gF = 0.25 * length(gE) * direction_vec;
+
+	vec3 g = gE + gF;
+
+	// Wind force
+	float windIntensity = 8.0;
+	float frequency = 1.0;
+	vec3 windDirection = normalize(vec3(1.0, 0, -0.5));
+
+	// simple sin wind function
+	vec3 wi_v0 = windIntensity * abs(sin(totalTime / frequency)) * windDirection;
+
+	vec3 v0_to_v2 = v2_vec3 - v0_vec3;
+
+	float f_d = 1.0 - abs(dot(wi_v0 / length(wi_v0), (v0_to_v2) / length(v0_to_v2)));
+	float f_r = dot(v0_to_v2, up_vec3) / height;
+
+	vec3 windForce = f_d * f_r * wi_v0;
+
+
+
+
+	// move V2
+	v2_vec3 += deltaTime * (recovery + g + windForce);
+
+
+	// State Validation
+	// Ensure v2 is above the local plane
+	float tmp = min(dot(up_vec3, v2_vec3 - v0_vec3), 0);
+	v2_vec3 = v2_vec3 - tmp * up_vec3;
+
+	// Get v1 acoording to v0 and v2
+	float l_proj = length(v2_vec3 - v0_vec3 - dot(v2_vec3 - v0_vec3, up_vec3) * up_vec3);
+
+	float l_proj_over_h = l_proj / height;
+
+	vec3 v1_vec3 = v0_vec3 + height * max(1.0 - l_proj_over_h, 0.05 * max(l_proj_over_h, 1.0)) * up_vec3;
+
+	// Correction
+	float L0 = distance(v2_vec3, v0_vec3);
+	float L1 = distance(v2_vec3, v1_vec3) + distance(v1_vec3, v0_vec3);
+	float n = 3.0; // This is Bezier curve degree
+
+	float L = (2.0 * L0 + (n - 1.0) * L1) / (n + 1.0);
+	float r = height / L;
+
+	vec3 v1_vec3_corr = v0_vec3 + r * (v1_vec3 - v0_vec3);
+	vec3 v2_vec3_corr = v1_vec3_corr + r * (v2_vec3 - v1_vec3);
+
+	thisBlade.v1.xyz = v1_vec3_corr;
+	thisBlade.v2.xyz = v2_vec3_corr;
+
+	blades[index] = thisBlade; // write back
+
+
+
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer

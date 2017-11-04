@@ -29,7 +29,8 @@ void main() {
 
 	// TODO: Use u and v to parameterize along the grass blade and output positions for each vertex of the grass blade
 	
-	// construct blade geometry	
+	// refer to the paper
+	// Blade geometry	
 	vec3 a = gl_in[0].gl_Position.xyz + v * (tessellation_eval_v1.xyz - gl_in[0].gl_Position.xyz);
 	vec3 b = tessellation_eval_v1.xyz + v * (tessellation_eval_v2.xyz - tessellation_eval_v1.xyz);
 	vec3 c = a + v * (b - a);
@@ -52,6 +53,7 @@ void main() {
 
 	forward = tessellation_eval_forward.xyz;
 
+	// set gl_Position in clip space!
     gl_Position = pos;
 
 
