@@ -35,7 +35,7 @@ void main() {
 	
 	float direction = v0.w; // direction
 
-	vec3 direction_vec = normalize(vec3(sin(direction), 0.0, cos(direction)));
+	vec3 direction_vec = -normalize(vec3(sin(direction), 0.0, cos(direction)));
 
 	//vec3 forward = normalize(cross(normalize(up.xyz), direction_vec));
 

@@ -63,6 +63,7 @@ void main() {
 
 	Blade thisBlade = blades[index];
 
+	// ---------------------------------------------------------------------------------------
 
     // TODO: Apply forces on every blade and update the vertices in the buffer
 	
@@ -90,15 +91,15 @@ void main() {
 
 	vec3 gE = gravityAccel * gravityDir;
 
-	vec3 direction_vec = normalize(vec3(sin(direction), 0.0, cos(direction)));
+	vec3 direction_vec = -normalize(vec3(sin(direction), 0.0, cos(direction)));
 
 	vec3 gF = 0.25 * length(gE) * direction_vec;
 
 	vec3 g = gE + gF;
 
 	// Wind force
-	float windIntensity = 8.0;
-	float frequency = 1.0;
+	float windIntensity = 6.0;
+	float frequency = 2.0;
 	vec3 windDirection = normalize(vec3(1.0, 0, -0.5));
 
 	// simple sin wind function
@@ -110,8 +111,6 @@ void main() {
 	float f_r = dot(v0_to_v2, up_vec3) / height;
 
 	vec3 windForce = f_d * f_r * wi_v0;
-
-
 
 
 	// move V2
@@ -146,15 +145,90 @@ void main() {
 
 	blades[index] = thisBlade; // write back
 
-
-
+	// ---------------------------------------------------------------------------------------
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
+	
+
+	// Orientation culling
+	bool isOrientationCulled = false;
+	vec3 viewDir;
+	float oriCullThreshold = 0.01f;
+
+	// mat4 should be column major
+	viewDir.x = camera.view[0][0] + camera.view[0][1] + camera.view[0][2]; // view - Right
+	viewDir.y = 0;
+	viewDir.z = camera.view[2][0] + camera.view[2][1] + camera.view[2][2]; // view - Forward
+	viewDir = normalize(viewDir);
+
+	if(abs(dot(viewDir, direction_vec)) < oriCullThreshold){
+		isOrientationCulled = true;
+	}
 
 	
-	culledBlades[atomicAdd(numBlades.vertexCount , 1)] = thisBlade;
+
+	// Viewfrustum culling
+	mat4 VP = camera.proj * camera.view;
+	vec4 viewfrustumTest_v0 = vec4(thisBlade.v0.xyz, 1.0);
+	vec4 viewfrustumTest_m  = vec4(0.25 * thisBlade.v0.xyz + 0.5 * thisBlade.v1.xyz + 0.25 * thisBlade.v2.xyz, 1.0);
+	vec4 viewfrustumTest_v2 = vec4(thisBlade.v2.xyz, 1.0);
+	
+	viewfrustumTest_v0 = VP * viewfrustumTest_v0;
+	viewfrustumTest_v0 /= viewfrustumTest_v0.w;
+
+	float t = 0.3; // threshold value
+
+	float h = viewfrustumTest_v0.w + t;
+	bool is_v0_in_frustem = (viewfrustumTest_v0.x >= -h) && (viewfrustumTest_v0.x <= h) && (viewfrustumTest_v0.y >= -h) && (viewfrustumTest_v0.y <= h) && (viewfrustumTest_v0.z >= -h) && (viewfrustumTest_v0.z <= h);
+	
+	h = viewfrustumTest_m.w + t;
+	bool is_m_in_frustem  = (viewfrustumTest_m.x  >= -h) && (viewfrustumTest_m.x  <= h) && (viewfrustumTest_m.y  >= -h) && (viewfrustumTest_m.y  <= h) && (viewfrustumTest_m.z  >= -h) && (viewfrustumTest_m.z  <= h);
+
+	h = viewfrustumTest_v2.w + t;
+	bool is_v2_in_frustem = (viewfrustumTest_v2.x >= -h) && (viewfrustumTest_v2.x <= h) && (viewfrustumTest_v2.y >= -h) && (viewfrustumTest_v2.y <= h) && (viewfrustumTest_v2.z >= -h) && (viewfrustumTest_v2.z <= h);
+	
+	bool isViewfrustumCulled = ((!is_v0_in_frustem) && (!is_m_in_frustem) && (!is_v2_in_frustem));
+
+
+
+
+	// Distance culling
+	float maxCullingDistance = 100.0;
+	uint numOfDistanceCullBuckets = 5;
+
+	vec3 cameraPos;
+	cameraPos.x = -camera.view[3][0];
+	cameraPos.y = -camera.view[3][1];
+	cameraPos.z = -camera.view[3][2];
+
+	float d_proj = length(v0_vec3 - cameraPos - dot(v0_vec3 - cameraPos , up_vec3) * up_vec3);
+	
+	uint tmp1 = (index % numOfDistanceCullBuckets);
+	float tmp2 = floor(numOfDistanceCullBuckets * (1.0 - d_proj / maxCullingDistance));
+
+	bool isDistanceCulled = !( tmp1 <= uint(tmp2) );
+
+
+	// orientation culling debug
+//	if(isOrientationCulled){
+//		culledBlades[atomicAdd(numBlades.vertexCount , 1)] = thisBlade;
+//	}
+
+	// view frustum culling debug
+//  if(isViewfrustumCulled){
+//		culledBlades[atomicAdd(numBlades.vertexCount , 1)] = thisBlade;
+//	}
+	
+	// distance culling debug
+//  if(isDistanceCulled){
+//		culledBlades[atomicAdd(numBlades.vertexCount , 1)] = thisBlade;
+//	}
+
+	if(!isOrientationCulled && !isViewfrustumCulled && !isDistanceCulled){
+		culledBlades[atomicAdd(numBlades.vertexCount , 1)] = thisBlade;
+	}
 	
 }
