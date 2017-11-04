@@ -17,7 +17,11 @@ out gl_PerVertex {
     vec4 gl_Position;
 };
 
+layout (location = 4) out vec2 bladeDimensions;
+
 void main() {
 	// TODO: Write gl_Position and any other shader outputs
 	gl_Position = vec4(vec3(v0), 1.0);
+	bladeDimensions.x = v2.w;
+	bladeDimensions.y = v1.w;
 }

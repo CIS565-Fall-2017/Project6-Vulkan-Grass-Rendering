@@ -29,19 +29,12 @@ layout(set = 2, binding = 1) buffer CulledBlades {
 	Blade culledBlades[];
 };
 
-
-
-// TODO: Add bindings to:
 // 1. Store the input blades
-
 
 // 2. Write out the culled blades
 
 // 3. Write the total number of blades remaining
 
-// The project is using vkCmdDrawIndirect to use a buffer as the arguments for a draw call
-// This is sort of an advanced feature so we've showed you what this buffer should look like
-//
  layout(set = 2, binding = 2) buffer NumBlades { 	  
 	  uint vertexCount;   // Write the number of blades remaining here
  	  uint instanceCount; // = 1
@@ -63,6 +56,14 @@ void main() {
 	float time = deltaTime + totalTime;
 
     // TODO: Apply forces on every blade and update the vertices in the buffer
+
+	//recovery force
+	//vec3 recovery = (vec3(v0) + v1.w * vec3(v3)) - vec3(v2);
+	//recovery *= v3.w; // multiply by stiffness coefficient
+
+	//gravity
+	//vec3 envGravity = -vec3()
+
 	uint index = gl_GlobalInvocationID.x;
 	culledBlades[index] = inputBlades[index];
 	atomicAdd(numBlades.vertexCount, 1);
