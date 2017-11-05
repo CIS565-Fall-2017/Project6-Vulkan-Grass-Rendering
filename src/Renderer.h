@@ -7,81 +7,81 @@
 
 class Renderer {
 public:
-    Renderer() = delete;
-    Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* camera);
-    ~Renderer();
+	Renderer() = delete;
+	Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* camera);
+	~Renderer();
 
-    void CreateCommandPools();
+	void CreateCommandPools();
 
-    void CreateRenderPass();
+	void CreateRenderPass();
 
-    void CreateCameraDescriptorSetLayout();
-    void CreateModelDescriptorSetLayout();
+	void CreateCameraDescriptorSetLayout();
+	void CreateModelDescriptorSetLayout();
 	void CreateTimeDescriptorSetLayout();
 	void CreateGrassDescriptorSetLayout();
-    void CreateComputeDescriptorSetLayout();
+	void CreateComputeDescriptorSetLayout();
 
-    void CreateDescriptorPool();
+	void CreateDescriptorPool();
 
-    void CreateCameraDescriptorSet();
-    void CreateModelDescriptorSets();
-    void CreateGrassDescriptorSets();
-    void CreateTimeDescriptorSet();
-    void CreateComputeDescriptorSets();
+	void CreateCameraDescriptorSet();
+	void CreateModelDescriptorSets();
+	void CreateGrassDescriptorSets();
+	void CreateTimeDescriptorSet();
+	void CreateComputeDescriptorSets();
 
-    void CreateGraphicsPipeline();
-    void CreateGrassPipeline();
-    void CreateComputePipeline();
+	void CreateGraphicsPipeline();
+	void CreateGrassPipeline();
+	void CreateComputePipeline();
 
-    void CreateFrameResources();
-    void DestroyFrameResources();
-    void RecreateFrameResources();
+	void CreateFrameResources();
+	void DestroyFrameResources();
+	void RecreateFrameResources();
 
-    void RecordCommandBuffers();
-    void RecordComputeCommandBuffer();
+	void RecordCommandBuffers();
+	void RecordComputeCommandBuffer();
 
-    void Frame();
+	void Frame();
 
 private:
-    Device* device;
-    VkDevice logicalDevice;
-    SwapChain* swapChain;
-    Scene* scene;
-    Camera* camera;
+	Device* device;
+	VkDevice logicalDevice;
+	SwapChain* swapChain;
+	Scene* scene;
+	Camera* camera;
 
-    VkCommandPool graphicsCommandPool;
-    VkCommandPool computeCommandPool;
+	VkCommandPool graphicsCommandPool;
+	VkCommandPool computeCommandPool;
 
-    VkRenderPass renderPass;
+	VkRenderPass renderPass;
 
 	VkDescriptorSetLayout computeDescriptorSetLayout;
-    VkDescriptorSetLayout cameraDescriptorSetLayout;
-    VkDescriptorSetLayout modelDescriptorSetLayout;
-    VkDescriptorSetLayout timeDescriptorSetLayout;
+	VkDescriptorSetLayout cameraDescriptorSetLayout;
+	VkDescriptorSetLayout modelDescriptorSetLayout;
+	VkDescriptorSetLayout timeDescriptorSetLayout;
 	VkDescriptorSetLayout grassDescriptorSetLayout;
-    
-    VkDescriptorPool descriptorPool;
 
-    VkDescriptorSet cameraDescriptorSet;
+	VkDescriptorPool descriptorPool;
+
+	VkDescriptorSet cameraDescriptorSet;
 	std::vector<VkDescriptorSet> modelDescriptorSets;
 	std::vector<VkDescriptorSet> grassDescriptorSets;
 	std::vector<VkDescriptorSet> computeDescriptorSets;
-    VkDescriptorSet timeDescriptorSet;
+	VkDescriptorSet timeDescriptorSet;
 
-    VkPipelineLayout graphicsPipelineLayout;
-    VkPipelineLayout grassPipelineLayout;
+	VkPipelineLayout graphicsPipelineLayout;
+	VkPipelineLayout grassPipelineLayout;
 	VkPipelineLayout computePipelineLayout;
 
-    VkPipeline graphicsPipeline;
-    VkPipeline grassPipeline;
-    VkPipeline computePipeline;
+	VkPipeline graphicsPipeline;
+	VkPipeline grassPipeline;
+	VkPipeline computePipeline;
 
-    std::vector<VkImageView> imageViews;
-    VkImage depthImage;
-    VkDeviceMemory depthImageMemory;
-    VkImageView depthImageView;
-    std::vector<VkFramebuffer> framebuffers;
+	std::vector<VkImageView> imageViews;
+	VkImage depthImage;
+	VkDeviceMemory depthImageMemory;
+	VkImageView depthImageView;
+	std::vector<VkFramebuffer> framebuffers;
 
-    std::vector<VkCommandBuffer> commandBuffers;
-    VkCommandBuffer computeCommandBuffer;
+	std::vector<VkCommandBuffer> commandBuffers;
+	VkCommandBuffer computeCommandBuffer;
 };
