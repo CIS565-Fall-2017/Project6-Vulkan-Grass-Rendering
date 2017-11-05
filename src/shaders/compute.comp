@@ -30,15 +30,15 @@ struct Blade {
 // This is sort of an advanced feature so we've showed you what this buffer should look like
 //
 
-layout(set = 0, binding = 0) buffer InputBlades {
-	Blade blade;
-} inputBlades;
+layout(set = 2, binding = 0) buffer InputBlades {
+	Blade inputBlades[];
+};
 
-layout(set = 0, binding = 1) buffer CulledBlades {
-	Blade blade;
-} culledBlades;
+layout(set = 2, binding = 1) buffer CulledBlades {
+	Blade culledBlades[];
+};
 
-layout(set = 0, binding = 2) buffer NumBlades {
+layout(set = 2, binding = 2) buffer NumBlades {
 	uint vertexCount;   // Write the number of blades remaining here
 	uint instanceCount; // = 1
 	uint firstVertex;   // = 0
@@ -66,7 +66,7 @@ void main() {
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
 
-	// atomicAdd(numBlades.vertexCount, 1);
-	// culledBlades[numBlades.vertexCount].blade = InputBlades[index].blade;
+	atomicAdd(numBlades.vertexCount, 1);
+	culledBlades[numBlades.vertexCount] = inputBlades[index];
 
 }

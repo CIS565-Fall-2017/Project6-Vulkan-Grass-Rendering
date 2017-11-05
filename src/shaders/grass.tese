@@ -8,6 +8,7 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
     mat4 proj;
 } camera;
 
+
 // TODO: Declare tessellation evaluation shader inputs and outputs
 
 void main() {
@@ -15,4 +16,5 @@ void main() {
     float v = gl_TessCoord.y;
 
 	// TODO: Use u and v to parameterize along the grass blade and output positions for each vertex of the grass blade
+	gl_Position = camera.proj * camera.view * (gl_in[0].gl_Position + vec4(1.0 - u, v, 0.0, 0.0));
 }

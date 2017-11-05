@@ -470,7 +470,7 @@ void Renderer::CreateComputeDescriptorSets() {
 		computeNumBladesInfo.range = sizeof(BladeDrawIndirect);
 
 		descriptorWrites[3 * i + 0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[3 * i + 0].dstSet = computeDescriptorSets[i];
+		descriptorWrites[3 * i + 0].dstSet = computeDescriptorSets[0];
 		descriptorWrites[3 * i + 0].dstBinding = 0;
 		descriptorWrites[3 * i + 0].dstArrayElement = 0;
 		descriptorWrites[3 * i + 0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -480,7 +480,7 @@ void Renderer::CreateComputeDescriptorSets() {
 		descriptorWrites[3 * i + 0].pTexelBufferView = nullptr;
 
 		descriptorWrites[3 * i + 1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[3 * i + 1].dstSet = computeDescriptorSets[i];
+		descriptorWrites[3 * i + 1].dstSet = computeDescriptorSets[0];
 		descriptorWrites[3 * i + 1].dstBinding = 1;
 		descriptorWrites[3 * i + 1].dstArrayElement = 0;
 		descriptorWrites[3 * i + 1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -490,7 +490,7 @@ void Renderer::CreateComputeDescriptorSets() {
 		descriptorWrites[3 * i + 1].pTexelBufferView = nullptr;
 
 		descriptorWrites[3 * i + 2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[3 * i + 2].dstSet = computeDescriptorSets[i];
+		descriptorWrites[3 * i + 2].dstSet = computeDescriptorSets[0];
 		descriptorWrites[3 * i + 2].dstBinding = 2;
 		descriptorWrites[3 * i + 2].dstArrayElement = 0;
 		descriptorWrites[3 * i + 2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -1028,11 +1028,9 @@ void Renderer::RecordComputeCommandBuffer() {
     // TODO: For each group of blades bind its descriptor set and dispatch
 	// vkCmdDispatch(...)
 
-	for (size_t i = 0; i < computeDescriptorSets.size(); i++) {
 		// Bind descriptor set for compute
-		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 2, 1, &computeDescriptorSets[i], 0, nullptr);
+		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 2, 1, &computeDescriptorSets[0], 0, nullptr);
 		vkCmdDispatch(computeCommandBuffer, ceil((NUM_BLADES + WORKGROUP_SIZE - 1) / (WORKGROUP_SIZE)), 1, 1);
-	}
 
 
     // ~ End recording ~
@@ -1126,14 +1124,14 @@ void Renderer::RecordCommandBuffers() {
             VkBuffer vertexBuffers[] = { scene->GetBlades()[j]->GetCulledBladesBuffer() };
             VkDeviceSize offsets[] = { 0 };
             // TODO: Uncomment this when the buffers are populated
-            // vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
+            vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
 
             // TODO: Bind the descriptor set for each grass blades model
-			// vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 0, 1, &grassDescriptorSets[j], 0, nullptr);
+			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_COMPUTE, graphicsPipelineLayout, 1, 1, &grassDescriptorSets[j], 0, nullptr);
 
             // Draw
             // TODO: Uncomment this when the buffers are populated
-            // vkCmdDrawIndirect(commandBuffers[i], scene->GetBlades()[j]->GetNumBladesBuffer(), 0, 1, sizeof(BladeDrawIndirect));
+            vkCmdDrawIndirect(commandBuffers[i], scene->GetBlades()[j]->GetNumBladesBuffer(), 0, 1, sizeof(BladeDrawIndirect));
         }
 
         // End render pass
