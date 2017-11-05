@@ -64,29 +64,49 @@ void main() {
 	vec4 v0 = blade.v0;
 	vec4 v1 = blade.v1;
 	vec4 v2 = blade.v2;
-	vec4 v3 = blade.up;
+	vec4 up = blade.up;
 
-	vec3 orientation = vec3(cos(v0.w), 0.0, sin(v0.w));
+	vec3 orientation = vec3(sin(v0.w), 0.0, cos(v0.w));
 
 	//recovery force
-	vec3 recovery = (vec3(v0) + v1.w * vec3(v3)) - vec3(v2);
-	recovery *= v3.w; // multiply by stiffness coefficient
+	vec3 recovery = (v0.xyz + v1.w * up.xyz) - v2.xyz;
+	recovery *= up.w; // multiply by stiffness coefficient
 
 	//gravity
-	vec3 envGravity = 1.0 * (-vec3(v3) * 9.8);
-	vec3 frontGravity = .25 * length(envGravity) * vec3(0.0, 0.0, 1.0);
+	vec3 envGravity = 1.0 * (-up.xyz * 9.8);
+	vec3 frontGravity = .25 * length(envGravity) * orientation;
 	vec3 gravity = envGravity + frontGravity;
 
 	//wind
 	vec3 windForce = sin(totalTime) * vec3(0.0, 0.0, 10.0);
-	float directionAlignment = 1.0 - abs(dot(normalize(windForce), normalize(orientation)));
-	float heightRatio = dot(vec3(v2) - vec3(v0), vec3(v3)) / v1.w;
+	float directionAlignment = abs(dot(normalize(windForce), normalize(orientation)));
+	float heightRatio = dot(v2.xyz - v0.xyz, up.xyz) / v1.w;
 	float alignmentValue = directionAlignment * heightRatio;
 	vec3 wind = alignmentValue * windForce;
 
 	vec3 translation = (recovery + gravity + wind) * deltaTime; 
 
-	inputBlades[index].v2 += vec4(translation, 0.0);
+	//do initial translation on control point
+	v2 += vec4(translation, 0.0);
+
+	//state validation
+	v2.xyz = v2.xyz - up.xyz * min(dot(up.xyz, v2.xyz - v0.xyz), 0);
+
+	float lProj = length(v2.xyz - v0.xyz - up.xyz * dot(v2.xyz - v0.xyz, up.xyz));
+	v1.xyz = v0.xyz + v1.w * up.xyz * max(1.0 - lProj / v1.w, 0.05 * max(lProj / v1.w, 1.0));
+
+	float L0 = distance(v0.xyz, v2.xyz);
+	float L1 = distance(v0.xyz, v1.xyz) + distance(v1.xyz, v2.xyz);
+	float L = (2.0 * L0 + 2.0 * L1) / 4.0;
+	float r = v1.w / L;
+	vec3 v1Tmp = v1.xyz;
+	v1.xyz = v0.xyz + r * (v1.xyz - v0.xyz);
+	v2.xyz = v1.xyz + r * (v2.xyz - v1Tmp);
+
+	//update Blades
+	inputBlades[index].v1 = v1;
+	inputBlades[index].v2 = v2;
+	
 	culledBlades[index] = inputBlades[index];
 
 	atomicAdd(numBlades.vertexCount, 1);
