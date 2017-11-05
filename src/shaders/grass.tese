@@ -29,22 +29,24 @@ void main() {
 	vec4 v2 = teseV2[0];
 	vec4 Up = teseUp[0];
 
-	//vec3 a = v0.xyz + v * (v1.xyz - v0.xyz);
-	//vec3 b = v1.xyz + v * (v2.xyz - v1.xyz);
-	//vec3 c = a + v * (b - a);
-	//vec3 c0 = c - teseDimensions[0].x * orientation;
-	//vec3 c1 = c + teseDimensions[0].x * orientation;
-	//vec3 t0 = normalize(b - a);
-	//vec3 n = normalize(cross(t0, t1));
+	vec3 a = v0.xyz + v * (v1.xyz - v0.xyz);
+	vec3 b = v1.xyz + v * (v2.xyz - v1.xyz);
+	vec3 c = a + v * (b - a);
+	vec3 c0 = c - teseDimensions[0].x * 0.5 * orientation;
+	vec3 c1 = c + teseDimensions[0].x * 0.5 * orientation;
+	vec3 t0 = normalize(b - a);
+	vec3 n = normalize(cross(t0, orientation));
+	float t = u + 0.5 * v - u * v;
+	vec3 finalPosition = (1.0 - t) * c0 + t * c1;
 
-	vec3 B0 = vec3(0.0, 0.0, 0.0);
-	vec3 B1 = v1.xyz - v0.xyz;
-	vec3 B2 = v2.xyz - v0.xyz;
-	vec3 curveTranslation = B0 * (1.0 - v) * (1.0 - v) + B1 * 2 * v * (1.0 - v) + B2 * v * v;
+	//vec3 B0 = vec3(0.0, 0.0, 0.0);
+	//vec3 B1 = v1.xyz - v0.xyz;
+	//vec3 B2 = v2.xyz - v0.xyz;
+	//vec3 curveTranslation = B0 * (1.0 - v) * (1.0 - v) + B1 * 2 * v * (1.0 - v) + B2 * v * v;
 
-	vec3 vAxis = teseV2[0].xyz - vec3(gl_in[0].gl_Position);
-	vec3 uAxis = normalize(cross(vAxis, orientation)) * teseDimensions[0].x;
+	//vec3 vAxis = teseV2[0].xyz - vec3(gl_in[0].gl_Position);
+	//vec3 uAxis = normalize(cross(vAxis, orientation)) * teseDimensions[0].x;
 
-	gl_Position = camera.proj * camera.view * (gl_in[0].gl_Position + (1.0 - u) * vec4(uAxis, 0.0) + vec4(curveTranslation, 0.0));
+	gl_Position = camera.proj * camera.view * vec4(finalPosition, 1.0);
 	colorHeight[0] = v * 0.5 + 0.25;
 }

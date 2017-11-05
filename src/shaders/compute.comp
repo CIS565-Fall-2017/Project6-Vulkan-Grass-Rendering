@@ -68,7 +68,9 @@ void main() {
 	vec3 gravity = envGravity + frontGravity;
 
 	//wind
-	vec3 windForce = sin(totalTime) * vec3(0.0, 0.0, 5.0);
+	//vec3 windForce = sin(totalTime * 4.0 + abs(cos(v0.x) - cos(v0.z))) * vec3(3.0, 0.0, -3.0);
+	vec3 windCenter = 0.5 * vec3(sin(totalTime), 0.0, cos(totalTime));
+	vec3 windForce = (-sin(totalTime * 20.0 - length(v0.xyz - windCenter)) + 0.8) * normalize(v0.xyz - windCenter) * 100.0;
 	float directionAlignment = abs(dot(normalize(windForce), normalize(bladeNormal)));
 	float heightRatio = dot(v2.xyz - v0.xyz, up.xyz) / v1.w;
 	float alignmentValue = directionAlignment * heightRatio;
@@ -100,12 +102,22 @@ void main() {
 	
 	culledBlades[index] = inputBlades[index];
 
-	atomicAdd(numBlades.vertexCount, 1);
+	// TODO: Cull blades that are too far away or not in the camera frustum and write them
+	// to the culled blades buffer
+
+	vec4 clipTest = camera.proj * camera.view * vec4(v0.xyz, 1.0);
+	clipTest /= clipTest.w;
+
+	float normalTest = dot(normalize(vec3(camera.view * vec4(v0.xyz, 1.0))), normalize(vec3(camera.view * vec4(bladeNormal, 0.0))));
+
+	if (clipTest.x > -1.1 && clipTest.x < 1.1 && clipTest.y > -1.1 && clipTest.y < 1.1 && abs(normalTest) > 0.05) {
+		culledBlades[atomicAdd(numBlades.vertexCount, 1)] = inputBlades[index];
+	}
+
+	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
+	// You want to write the visible blades to the buffer without write conflicts between threads
 
 	//culledBlades.data[index] = inBlades.data[index];
 
-	// TODO: Cull blades that are too far away or not in the camera frustum and write them
-	// to the culled blades buffer
-	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
-	// You want to write the visible blades to the buffer without write conflicts between threads
+	
 }
