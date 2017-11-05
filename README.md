@@ -62,15 +62,34 @@ Simulating and rendering many instances of a object is computationally expensive
 
 Grass blades have a marginal depth, so when the blades are viewed perpendicular to the front facing vector, the blades cannot be seen at all or the rendered parts of the blades are smaller than a pixel and will cause aliasing artifacts. Therefore blades oriented as such are culled before rendering.
 
+|  |  |  |
+| ----------- | ----------- | ----------- | 
+| ![](img/grasso1.png) | ![](img/grasso2.png) | ![](img/grasso3.png) | 
+| 65,536 | 50,064 | 19,366 | 
+
 #### View-frustum culling
 
 We also want to cull blades 
 
+|  |  |  |  |
+| ----------- | ----------- | ----------- | ----------- | 
+| ![](img/grassf1.png) | ![](img/grassf2.png) | ![](img/grassf3.png) | ![](img/grassf4.png) | 
+| 65,536 | 51,930 | 6,692 | 1,942 | 
+
 #### Distance culling
+
+|  |  |  |  |
+| ----------- | ----------- | ----------- | ----------- | 
+| ![](img/grassd4.png) | ![](img/grassd3.png) | ![](img/grassd2.png) | ![](img/grassd1.png) | 
+| 61,239 | 56,621 | 47,415 | 36,321 | 
 
 ### Tessellation
 
+![](img/lod.gif)
+
 ### Performance
+
+![](img/performance.png)
 
 
 ### Credits
