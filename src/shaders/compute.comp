@@ -29,12 +29,6 @@ layout(set = 2, binding = 1) buffer CulledBlades {
 	Blade culledBlades[];
 };
 
-// 1. Store the input blades
-
-// 2. Write out the culled blades
-
-// 3. Write the total number of blades remaining
-
  layout(set = 2, binding = 2) buffer NumBlades { 	  
 	  uint vertexCount;   // Write the number of blades remaining here
  	  uint instanceCount; // = 1
@@ -52,11 +46,7 @@ void main() {
 		numBlades.vertexCount = 0;
 	}
 	barrier(); // Wait till all threads reach this point
-
 	float time = deltaTime + totalTime;
-
-    // TODO: Apply forces on every blade and update the vertices in the buffer
-
 	uint index = gl_GlobalInvocationID.x;
 
 	Blade blade = inputBlades[index];
@@ -66,7 +56,7 @@ void main() {
 	vec4 v2 = blade.v2;
 	vec4 up = blade.up;
 
-	vec3 orientation = vec3(sin(v0.w), 0.0, cos(v0.w));
+	vec3 bladeNormal = vec3(sin(v0.w), 0.0, cos(v0.w));
 
 	//recovery force
 	vec3 recovery = (v0.xyz + v1.w * up.xyz) - v2.xyz;
@@ -74,16 +64,17 @@ void main() {
 
 	//gravity
 	vec3 envGravity = 1.0 * (-up.xyz * 9.8);
-	vec3 frontGravity = .25 * length(envGravity) * orientation;
+	vec3 frontGravity = .25 * length(envGravity) * bladeNormal;
 	vec3 gravity = envGravity + frontGravity;
 
 	//wind
-	vec3 windForce = sin(totalTime) * vec3(0.0, 0.0, 10.0);
-	float directionAlignment = abs(dot(normalize(windForce), normalize(orientation)));
+	vec3 windForce = sin(totalTime) * vec3(0.0, 0.0, 5.0);
+	float directionAlignment = abs(dot(normalize(windForce), normalize(bladeNormal)));
 	float heightRatio = dot(v2.xyz - v0.xyz, up.xyz) / v1.w;
 	float alignmentValue = directionAlignment * heightRatio;
 	vec3 wind = alignmentValue * windForce;
 
+	//total the forces
 	vec3 translation = (recovery + gravity + wind) * deltaTime; 
 
 	//do initial translation on control point
