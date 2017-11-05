@@ -21,10 +21,6 @@ struct Blade {
     vec4 up;
 };
 
-// Constants 
-const float ACCELERATION = 5;
-const vec4 GRAVITY = vec4(0.0, -1.0, 0.0, ACCELERATION);
-
 // TODO: Add bindings to:
 // 1. Store the input blades
 // 2. Write out the culled blades
@@ -40,15 +36,13 @@ const vec4 GRAVITY = vec4(0.0, -1.0, 0.0, ACCELERATION);
 // 	  uint firstInstance; // = 0
 // } numBlades;
 
-
-
 layout(set = 2, binding = 0) buffer Blades {
 	Blade blades[];
-} blades;
+};
 
 layout(set = 2, binding = 1) buffer CulledBlades {
 	Blade culledBlades[];
-} culledBlades;
+};
 
 layout(set = 2, binding = 2) buffer NumBlades {
 	uint vertexCount;   // Write the number of blades remaining here
@@ -58,54 +52,88 @@ layout(set = 2, binding = 2) buffer NumBlades {
 } numBlades;
 
 
-
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
 }
 
+// Constants 
+const float ACCELERATION = 9.8;
+const vec4 GRAVITY = vec4(0.0, -1.0, 0.0, ACCELERATION);
+
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
+		numBlades.vertexCount = 0;
 	}
 	barrier(); // Wait till all threads reach this point
 
-
-	uint index = gl_GlobalInvocationID.x;
-	const int numBlades = numBlades.vertexCount;
-
     // TODO: Apply forces on every blade and update the vertices in the buffer
-	for(int i = 0; i < numBlades; i++)
-	{
-		// ---------- Calculate gravity ---------- g = gE + gF
+	
+	uint index = gl_GlobalInvocationID.x;
+	Blade currBlade = blades[index];
+
+
+	/* --------------------------------------- FORCE CALCULATIONS -----------------------------------------
+
+	vec3 v0_pos = currBlade.v0.xyz;
+	float theta = currBlade.v0.w;
+
+	vec3 v1_pos = currBlade.v1.xyz;
+	float height = currBlade.v1.w;
+
+	vec3 v2_pos = currBlade.v2.xyz;
+	float width = currBlade.v2.w;
+
+	vec3 upVec = currBlade.up.xyz;
+	float stiffness = currBlade.up.w;
+
+	// ---------- Calculate gravity ---------- 
+	// g = gE + gF ---------- blade's v0.w = blade's orientation
 		
-		// Environmental gravity
-		vec3 gE = normalize(vec3(GRAVITY.xyz)) * GRAVITY.w;
+	// Environmental gravity
+	vec3 gE = normalize(GRAVITY.xyz) * GRAVITY.w;
 		
-		// Front gravity (blade's v0.w = direction)
-		vec3 gF = 0.25 * length(gE) * blades[i].v0.w;
+	// Front gravity 
+	// Get front facing direction
+	// https://math.stackexchange.com/questions/180874/convert-angle-radians-to-a-heading-vector
+	// https://www.opengl.org/discussion_boards/showthread.php/178287-Get-orientation-from-vectors
+	// https://en.wikipedia.org/wiki/Cross_product
+	vec3 orientationVec = vec3(sin(theta), 0.0, cos(theta));
+	vec3 frontDir = normalize(cross(upVec, orientationVec));
+	vec3 gF = 0.25 * length(gE) * frontDir;
 
-		vec3 g = gE + gF;
+	vec3 g = gE + gF;
 
-		// ---------- Calculate recovery ---------- r = (iv2 - v2) * stiffness
-		// blades v1.w = height and up.w = stiffness
-		vec3 iv2 =  vec3(blades[i].up * blades[i].v1.w);		//NOT SURE IF THIS IS RIGHT?????????????????????????????????
-		vec3 r = (iv2 - vec3(blades[i].v2.xyz)) * blades[i].up.w;
+	// ---------- Calculate recovery ---------- 
+	// r = (iv2 - v2) * stiffness ---------- v1.w = height and up.w = stiffness
+	vec3 iv2 =  v0_pos + vec3(upVec * height);
+	vec3 r = (iv2 - v2_pos) * stiffness;
 
-		// ---------- Calculate wind ----------
-		vec3 windDir = vec3(1.0);
-		vec3 windAlign = vec3(1.0);
-		vec3 w = windDir + windAlign;
+	// ---------- Calculate wind ----------
+	vec3 windDir = vec3(1.0);
+	vec3 windAlign = vec3(1.0);
+	vec3 w = windDir + windAlign;
 
-		// ---------- Calculate total force ----------
-		// MAKE SURE TO DO STATE VALIDATION HERE
-		vec3 tv2 = (g + r + w) * Time.deltaTime;
+	// ---------- Calculate total force ----------
+	// MAKE SURE TO DO STATE VALIDATION HERE
+	vec3 tv2 = (g + r + w) * Time.deltaTime;
 
-	}//end for all grass blades 
+	-------------------------------------------------------------------------------- */
+
 
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
+
+	// http://www.nvidia.com/content/siggraph/Rollin_Oster_OpenGL_CUDA.pdf (slide 21)
+	// index = atomicAdd(totalVerts, vertsInSurface)
+
+	culledBlades[atomicAdd(numBlades.vertexCount, 1)] = currBlade;
+
+
+	// -------------------------------------- TESTING ------------------------------------------
+	// blades[index] = currBlade;
+	
 }

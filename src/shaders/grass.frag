@@ -8,10 +8,15 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 
 // TODO: Declare fragment shader inputs
 
+// Input from tess. eval
+layout (location = 0) in vec4 te_position;
+layout (location = 1) in vec4 te_normal;
+layout (location = 2) in vec2 te_uv;
+
 layout(location = 0) out vec4 outColor;
 
 void main() {
     // TODO: Compute fragment color
 
-    outColor = vec4(1.0);
+    outColor = vec4(0.13, 0.56, 0.13, 1.0);
 }
