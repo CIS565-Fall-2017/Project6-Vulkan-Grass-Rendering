@@ -12,8 +12,9 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 layout(set = 1, binding = 0) uniform Time {
     float deltaTime;
     float totalTime;
-};
+}time;
 
+//v0.w holds orientation, v1.w holds height, v2.w holds width, and up.w holds the stiffness coefficient.
 struct Blade {
     vec4 v0;
     vec4 v1;
@@ -29,12 +30,22 @@ struct Blade {
 // The project is using vkCmdDrawIndirect to use a buffer as the arguments for a draw call
 // This is sort of an advanced feature so we've showed you what this buffer should look like
 //
-// layout(set = ???, binding = ???) buffer NumBlades {
-// 	  uint vertexCount;   // Write the number of blades remaining here
-// 	  uint instanceCount; // = 1
-// 	  uint firstVertex;   // = 0
-// 	  uint firstInstance; // = 0
-// } numBlades;
+
+layout(set=2, binding = 0) buffer inputBlades{
+	Blade inputblades[];
+};
+
+layout(set=2, binding = 1) buffer culledBlades{
+	Blade culledblade[];
+};
+
+layout(set = 2, binding = 2) buffer NumBlades {
+//layout(set = 2, binding = 2) buffer BladeDrawIndirect {
+ 	  uint vertexCount;   // Write the number of blades remaining here
+      uint instanceCount; // = 1
+ 	  uint firstVertex;   // = 0
+ 	  uint firstInstance; // = 0
+ } numBlades;
 
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
@@ -43,14 +54,64 @@ bool inBounds(float value, float bounds) {
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
+		 numBlades.vertexCount = 0;
 	}
 	barrier(); // Wait till all threads reach this point
 
+	uint index = gl_GlobalInvocationID.x;
+	vec3 v0 = vec3(inputblades[index].v0);
+	vec3 v1 = vec3(inputblades[index].v1);
+	vec3 v2 = vec3(inputblades[index].v2);
+	vec3 up = vec3(inputblades[index].up);
+	float orientation = inputblades[index].v0.w; //radius value of angle between blade orientation and (1,0,0)?? or (-1,0,0)??
+	float height = inputblades[index].v1.w;
+	float width = inputblades[index].v2.w;
+	float stiffness = inputblades[index].up.w;
+
     // TODO: Apply forces on every blade and update the vertices in the buffer
+	//Gravity
+	vec3 gE = vec3(0,-9.8,0);
+	vec3 bladeFace = cross(vec3(cos(orientation), 0, sin(orientation)) , up);
+	vec3 gF = 0.25*gE.length()*bladeFace;
+	vec3 g = gE + gF;
+
+	//Recovery
+	vec3 r = (up * height - v2) * stiffness;
+
+	//Wind
+	//assume the wind source position is at (0,0,0)
+	vec3 windForce = sin(time.totalTime)* (v0 - vec3(0));
+	float fd = 1 - abs( dot(normalize(windForce) , normalize(v2 - v0) ) );
+	float fr = dot( (v2 - v0), up ) / height;
+	vec3 w = windForce*fd*fr;
+
+	//Apply forces to v2
+	vec3 tv2 = (g + r + w)*(time.deltaTime);
+	//Check to make sure v2 is above the ground
+	tv2 = tv2 - vec3(up)*min(dot(up, (v2-v0)) , 0);
+	// use v2's new position to determine the v1's new position
+	float lproj = ( tv2 - v0 - up * (dot((tv2-v0), up)) ).length();
+	vec3 tv1 = v0 + height*up*max(1-lproj/height , 0.05*max(lproj/height , 1));
+	//correct v1 and v2 to maintain the grass blade height
+
+	float L = ( 2 * (tv2-v0).length() + (2-1)*( (tv2-tv1).length() + (tv1-v0).length() ) ) / (2+1);
+	float ratio = height/L;
+	vec3 v1correct = v0 + ratio*(tv1-v0);
+	vec3 v2correct = v1correct + ratio*(tv2-tv1);
+	//inputblades[index].v1 = vec4(v1correct, height);
+	//inputblades[index].v2 = vec4(v2correct, width);
+
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
+	
+	//Orientation Culling How to pass in the camera origin?
+	
+	//View-frustum Culling
+	
+	//Distance Culling
+	atomicAdd(numBlades.vertexCount, 1);
+	culledblade[index] = inputblades[index];
 }
