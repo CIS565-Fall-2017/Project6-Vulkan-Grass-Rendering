@@ -91,19 +91,21 @@ void main()
 
     // Apply Natural Forces on every blade
 	// Recovery Force
-	vec3 initial_v2 = v1;
+	vec3 initial_v2 = v0 + up * height;
 	vec3 recovery = (initial_v2 - v2)*stiffness;
 
 	// Gravity Force
 	vec3 gE = vec3(0.0, GRAVITY, 0.0); //Environmental Gravity
 	vec3 gF = 0.25 * GRAVITY * front_direction; //Front Gravity
-	vec3 gravity = vec3(0.0, 0.0, 0.0); //Total Gravitational Force
+	vec3 gravity = gE+gF; //Total Gravitational Force
 	
 	// Wind Force
-	//vec3 windDirection = normalize(vec3(1, 0, 0)); // straight wave
-	vec3 windDirection = -normalize(v0); // helicopter wave
+	vec3 windDirection = normalize(vec3(1, 1, 1)); // straight wave
+	//vec3 windDirection = normalize(v0); // helicopter wave
 
-	float windStrength = 10.0 * cos(4.0 * totalTime + length(v0)) + 10.0 * (1.0 + rand(v0.xz));
+	//vec3 windDirection = vec3(1.0 + rand(v0.xz), rand(v0.xz), 1.0 + rand(v0.xz));
+	float windStrength = 100.0;
+	float windMovement = windStrength*sin(totalTime/5.0);
 
 	float fd = 1.0 - abs(dot(windDirection, normalize(v2 - v0)));
 	float fr = dot(v2 - v0, up) / height;
@@ -135,8 +137,8 @@ void main()
 	vec3 v1_corrected = v0 + r*(v1-v0);
 	vec3 v2_corrected = v1_corrected + r*(v2-v1);
 
-	inputBlades[index].v1.xyz = v1_corrected;
-	inputBlades[index].v2.xyz = v1_corrected;
+	blade.v1.xyz = v1_corrected;
+	blade.v2.xyz = v2_corrected;
 
 	// Cull Blades
 	// 1. Orientation culling
@@ -181,6 +183,6 @@ void main()
 	
 	if(!culled_Due_To_Orientaion && !culled_Due_To_Frustum && !culled_Due_To_Distance)
 	{
-		culledBlades[atomicAdd(numBlades.vertexCount, 1)] = inputBlades[index];
+		culledBlades[atomicAdd(numBlades.vertexCount, 1)] = blade;
 	}	
 }

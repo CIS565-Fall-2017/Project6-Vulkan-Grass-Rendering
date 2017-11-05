@@ -12,24 +12,34 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 layout(location = 0) in vec4 v0_tese[];
 layout(location = 1) in vec4 v1_tese[];
 layout(location = 2) in vec4 v2_tese[];
-layout(location = 3) in vec4 v3_tese[];
 
-layout(location = 0) out vec4 f_pos_screenSpace;
-layout(location = 1) out vec4 f_pos_world;
+layout(location = 0) out vec4 f_normal;
+layout(location = 1) out vec3 f_pos_world;
 
 void main() 
 {
     float u = gl_TessCoord.x;
     float v = gl_TessCoord.y;
 
-	// TODO: Use u and v to parameterize along the grass blade and output positions for each vertex of the grass blade
-	float x = v0_tese[0].x + u*v2_tese[0].w;
-	float y = v0_tese[0].y + v*v1_tese[0].w;
-	float z = v0_tese[0].z + v0_tese[0].z;
-	vec3 pos = vec3(x,y,z);
+	// Use u and v to parameterize along the grass blade and output positions for each vertex of the grass blade
+	vec3 a = v0_tese[0].xyz + v * (v1_tese[0].xyz - v0_tese[0].xyz);
+	vec3 b = v1_tese[0].xyz + v * (v2_tese[0].xyz - v1_tese[0].xyz);
+	vec3 center = a + v * (b - a);
 
-	f_pos_world = vec4(pos, 1.0);
-	f_pos_screenSpace = camera.proj * camera.view * f_pos_world;
+	float width = v2_tese[0].w;
+	float angle = v0_tese[0].w;
+	vec3 bitangent = vec3(cos(angle), 0.0, sin(angle));
 
-	gl_Position = f_pos_screenSpace;
+	float scaling = 1.2-v;
+	vec3 c0 = center - width*scaling * bitangent;
+	vec3 c1 = center + width*scaling * bitangent;
+
+	vec3 tangent = normalize(b - a);
+	f_normal.xyz = normalize(cross(bitangent, tangent));
+	f_normal.w = v; //for fragment shading
+
+	float t = u - u * v * v;
+	f_pos_world = mix(c0, c1, t);
+
+	gl_Position = camera.proj * camera.view * vec4(f_pos_world, 1.0);
 }
