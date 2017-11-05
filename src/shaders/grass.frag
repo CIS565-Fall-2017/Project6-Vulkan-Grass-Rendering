@@ -21,5 +21,6 @@ void main() {
 		lambertTerm = 1;
 	}
 	vec3 baseColor = vec3(0.18, 0.48, 0.04);
+	//vec3 baseColor = bladeNormal;
     outColor = vec4(baseColor*lambertTerm,1);
 }
