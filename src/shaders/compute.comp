@@ -21,21 +21,6 @@ struct Blade {
     vec4 up;
 };
 
-// TODO: Add bindings to:
-// 1. Store the input blades
-// 2. Write out the culled blades
-// 3. Write the total number of blades remaining
-
-// The project is using vkCmdDrawIndirect to use a buffer as the arguments for a draw call
-// This is sort of an advanced feature so we've showed you what this buffer should look like
-//
-// layout(set = ???, binding = ???) buffer NumBlades {
-// 	  uint vertexCount;   // Write the number of blades remaining here
-// 	  uint instanceCount; // = 1
-// 	  uint firstVertex;   // = 0
-// 	  uint firstInstance; // = 0
-// } numBlades;
-
 // Input blades array
 layout(set = 2, binding = 0) buffer InBlades {
   Blade inBlades[];
@@ -90,12 +75,13 @@ void main() {
   vec3 rec = (iv2 - v2) * stiffness;
 
   // wind
-  vec3 windDir = /*normalize(v0);*/ vec3(1.0, 0.0, 1.0);
-  /*float windComp = 2.0 * sin(totalTime * 2.5 + dot(windDir + vec3(0.0, 0.0, -1.0), v0))
-                 + 3.0 * sin(totalTime * 2.5 + dot(windDir + vec3(1.0, 0.0, 0.0), v0));*/
+  vec3 windDir = vec3(1.0, 0.0, 1.0);
+  float windComp = 2.0 * sin(totalTime * 2.5 + dot(windDir + vec3(0.0, 0.0, -1.0), v0))
+                 + 3.0 * sin(totalTime * 2.5 + dot(windDir + vec3(1.0, 0.0, 0.0), v0));
+
   float fd = 1.0 - abs(dot(normalize(windDir), normalize(v2 - v0)));
   float fr = dot(v2 - v0, up) / height;
-  vec3 wind = windDir /** windComp*/ * fd * fr;
+  vec3 wind = windDir * windComp * fd * fr;
 
   // total
   vec3 vChange = (g + rec + wind)* deltaTime;
@@ -126,6 +112,46 @@ void main() {
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
-  //vec4 forward = inverse(view) * vec4(0.0, 0.0, 1.0, 0.0);
+  
+  // orientation culling // cull blades closer to 0.0 and keep the ones closer to 1.0
+  vec4 forward = normalize(inverse(camera.proj * camera.view) * vec4(0.0, 0.0, 1.0, 0.0));
+  bool cullOrientation = abs(dot(normalize(vec3(forward.x, 0.0, forward.z)), normalize(vec3(f.x, 0.0, f.z)))) < 0.1;// - 0.1 * abs(sin(totalTime / 2.0));
+  
+  // view-frustum culling
+  vec4 v0Trans = camera.proj * camera.view * vec4(v0, 1.0);
+  v0Trans /= v0Trans.w;
+  vec4 v2Trans = camera.proj * camera.view * vec4(v2, 1.0);
+  v2Trans /= v2Trans.w;
+  vec3 m = 0.25 * v0 + 0.5 * v1 + 0.25 * v2;
+  vec4 mTrans = camera.proj * camera.view * vec4(m, 1.0);
+  mTrans /= mTrans.w;
 
+  bool cullViewFrust = false;
+  float th = 1.2; // threshold
+  if (v0Trans.x < -th || v0Trans.x > th || v0Trans.y < -th || v0Trans.y > th || v0Trans.z < 0.0 || v0Trans.z > 1.0 ||
+    v2Trans.x < -th || v2Trans.x > th || v2Trans.y < -th || v2Trans.y > th || v2Trans.z < 0.0 || v2Trans.z > 1.0 ||
+    mTrans.x < -th || mTrans.x > th || mTrans.y < -th || mTrans.y > th || mTrans.z < 0.0 || mTrans.z > 1.0) {
+    cullViewFrust = true;
+  }
+
+  // distance culling
+  // Because the blades are uniformly distributed, we can just delete the first few blades
+  // among the blades in a level, without forming gaps..
+  float dProj = length((camera.view * vec4(v0, 1.0)).xyz - forward.xyz - up * dot(((camera.view * vec4(v0, 1.0)).xyz - forward.xyz), up));
+  float dMax = 40.0;
+  // float num = 20.0;
+  // float indMin = floor(num * (1.0 - dProj / dMax));
+  // float delPer = 1.0 - 1.0 / pow(2.718, dProj / dMax /*num - indMin*/);// 1.0 - indMin / num;
+  bool cullDistance = index < float(1 << 20) * dProj / dMax; // (pow(2.0, 1.0 + min(dProj / dMax, dMax)) - 2.0); /*|| indMin < 0.0*/ // && (index < (indMax / dMax * num))) || indMin < 0.0;// abs(sin(totalTime / 2.0));// > 0.9;
+
+  // cull
+  /*if (!cullOrientation && !cullViewFrust && !cullDistance) {
+    outBlades[atomicAdd(numBlades.vertexCount, 1)] = inBlades[index];
+  }
+  else {
+    inBlades[index].v0.y = -3;
+    inBlades[index].v1.y = -2;
+    inBlades[index].v2.y = -1;
+    outBlades[atomicAdd(numBlades.vertexCount, 1)] = inBlades[index];
+  }*/
 }

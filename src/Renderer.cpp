@@ -501,7 +501,7 @@ void Renderer::CreateComputeDescriptorSets() {
     VkDescriptorBufferInfo numBladesInfo = {};
     numBladesInfo.buffer = scene->GetBlades()[i]->GetNumBladesBuffer();
     numBladesInfo.offset = 0;
-    numBladesInfo.range = NUM_BLADES * sizeof(BladeDrawIndirect); // ..??
+    numBladesInfo.range = sizeof(BladeDrawIndirect);
 
     descriptorWrites[3 * i + 0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[3 * i + 0].dstSet = computeDescriptorSets[i];
@@ -536,7 +536,6 @@ void Renderer::CreateComputeDescriptorSets() {
 
   // Update descriptor sets
   vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-
 }
 
 void Renderer::CreateGraphicsPipeline() {

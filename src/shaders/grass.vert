@@ -23,10 +23,10 @@ out gl_PerVertex {
 
 void main() {
 	// TODO: Write gl_Position and any other shader outputs
-  outV0 = inV0; // vec4((model * vec4(inV0.xyz, 1.0)).xyz, inV0.w);
-  outV1 = inV1; // vec4((model * vec4(inV1.xyz, 1.0)).xyz, inV1.w);
-  outV2 = inV2; // vec4((model * vec4(inV2.xyz, 1.0)).xyz, inV2.w);
-  outUp = inUp; // inUp;//vec4((model * vec4(inUp.xyz, 1.0)).xyz, inUp.w);
+  outV0 = inV0;
+  outV1 = inV1;
+  outV2 = inV2;
+  outUp = inUp;
 
   gl_Position = vec4(outV0.xyz, 1.0);
 }
