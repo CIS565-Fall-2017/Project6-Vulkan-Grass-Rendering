@@ -62,6 +62,7 @@ Simulating and rendering many instances of a object is computationally expensive
 
 Grass blades have a marginal thickness, so when the blades are viewed perpendicular to the front facing vector, the blades cannot be seen at all or the rendered parts of the blades are smaller than a pixel and would cause aliasing artifacts. Therefore blades oriented as such an angle are culled before rendering. 
 
+|   |   |   |
 | ----------- | ----------- | ----------- | 
 | ![](img/grasso1.PNG) | ![](img/grasso2.PNG) | ![](img/grasso3.PNG) | 
 | 65,536 | 50,064 | 19,366 | 
@@ -70,8 +71,9 @@ The above scene is shown at three different viewing angles and all the blades in
 
 #### View-frustum culling
 
-We also want to cull blades that are outside of the view-frustum, since they are not visible in the frame anyway. To determine if a blade is in frame, we compare the visibility of the first and last control points and a weighted midpoint instead of `v1` because `v1` does not lie on the curve.  
+We also want to cull blades that are outside of the view-frustum, since they are not visible in the frame anyway. To determine if a blade is in frame, we compare the visibility of the first and last control points and a weighted midpoint instead of `v1` because `v1` does not lie on the curve.
 
+|   |   |   |   |
 | ----------- | ----------- | ----------- | ----------- | 
 | ![](img/grassf1.PNG) | ![](img/grassf2.PNG) | ![](img/grassf3.PNG) | ![](img/grassf4.PNG) | 
 | 65,536 | 51,930 | 6,692 | 1,942 | 
@@ -80,8 +82,9 @@ As camera zooms in on the scene, more blades move outside of the viewing frustum
 
 #### Distance culling
 
-Similarly to orientation culling, grass blades at large distances from the camera can be smaller than the size of a pixel and can lead to aliasing problems. To solve this, we reduce grass density far away from the camera. 
+Similarly to orientation culling, grass blades at large distances from the camera can be smaller than the size of a pixel and can lead to aliasing problems. To solve this, we reduce grass density far away from the camera.
 
+|   |   |   |   | 
 | ----------- | ----------- | ----------- | ----------- | 
 | ![](img/grassd4.PNG) | ![](img/grassd3.PNG) | ![](img/grassd2.PNG) | ![](img/grassd1.PNG) | 
 | 61,239 | 56,621 | 47,415 | 36,321 | 
