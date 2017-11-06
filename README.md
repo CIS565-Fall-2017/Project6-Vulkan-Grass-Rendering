@@ -1,7 +1,13 @@
 Vulkan Grass Rendering
 ========================
 
+`Rishabh Shah`
+
+`Tested on: Windows 10, i7-6700HQ @ 2.6GHz 16GB, GTX 960M 4096MB (Laptop)`
+
 ![](img/demo.gif)
+
+*The scene was rendered in 1000x725 resolution with 2<sup>16</sup> grass blades (before culling optimizations). The number on top left shows the FPS count.*
 
 ## Overview
 
