@@ -1,6 +1,8 @@
 Grass Rendering with Vulkan
 ===============
 
+![](img/wind-circle.gif)
+
 **University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 6**
 
 * Mauricio Mutai
@@ -51,9 +53,9 @@ Below are some of the main changes made to the base code (mostly related to Vulk
 * `Renderer.cpp`
   * `Renderer::CreateComputeDescriptorSetLayout()`
     * Define descriptor set layout for compute shader
-    * One buffer for storing all blades
-    * One buffer for storing only blades to be rendered
-    * One buffer for keeping track of how many blades should be rendered
+      * One buffer for storing all blades
+      * One buffer for storing only blades to be rendered
+      * One buffer for keeping track of how many blades should be rendered
   * `Renderer::CreateComputeDescriptorSets()`
     * Update descriptor sets for compute shader using layout above and buffers created in `Blades` objects 
   * `Renderer::CreateComputePipeline()`
@@ -67,6 +69,13 @@ Below are some of the main changes made to the base code (mostly related to Vulk
     * `color.w` determines whether to use `color.xyz` or default green color to render grass blade
 
 ## Analysis
+
+
+
+## Other Notes
+
+* The GIF at the beginning of the README was rendered with 2^14 blades, "wind as color" mode enabled, and with radial wind enabled. 
+
 
 Instructions - Vulkan Grass Rendering
 ========================
