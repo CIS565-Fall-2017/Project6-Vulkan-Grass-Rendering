@@ -100,7 +100,7 @@ void main() {
 
 	//Wind
 	vec3 wind_direction = vec3(1.0f, 0.0f, 0.0f);
-	float wind_strength = 5.0 * cos(totalTime);
+	float wind_strength = 5 * cos(totalTime);
 
 	float fd = 1 - abs(dot(normalize(wind_direction), normalize(v2 - v0)));
 	float fr = dot(v2 - v0, up) / height;
@@ -170,6 +170,9 @@ void main() {
 	bool culled_distance = mod(idx, num) > floor(num * (1.0 - d_proj / dmax) );
 
 	if(!(culled_orientation || culled_frustum || culled_distance))	
+	//if (!culled_orientation)
+	//if (!culled_frustum)
+	//if (!culled_distance)
 	{
 		culledBlades[atomicAdd(numBlades.vertexCount , 1)] = blade;
 	}	
