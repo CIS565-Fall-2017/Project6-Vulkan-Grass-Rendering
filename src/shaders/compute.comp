@@ -99,9 +99,13 @@ void main()
 
 	vec3 gravity = gE + gF;	
 
-	// TODO
 	// Wind ----------------------------------
-	vec3 wind = vec3(0.0,0.0,0.0);
+	vec3 wi = vec3(1, 0, 0) * cos(totalTime);			
+	float fd = 1 - abs(dot(normalize(wi), normalize(v2 - v0)));	// Directional alignment
+	float fr = dot((v2 - v0), up) / height;
+	float alignment = fd * fr;
+
+	vec3 wind = wi * alignment;
 
 	// Final displacement
 	vec3 displacement = (recovery + gravity + wind) * deltaTime;
@@ -177,7 +181,7 @@ void main()
 	// Blade gets classified into one of the nLevels
 	float dProj = length(v0 - eyePos.xyz - up * dot((v0 - eyePos.xyz), up));
 	
-	float nLevels = 10.0;		// Distance levels that get distributed over dMax
+	float nLevels = 40.0;		// Distance levels that get distributed over dMax
 	float dMax = 20.0;			// Maximum distance
 
 	// Culled blade
