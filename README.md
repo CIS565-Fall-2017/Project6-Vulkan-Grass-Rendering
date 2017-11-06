@@ -76,6 +76,8 @@ Although we need to simulate forces on every grass blade at every frame, there a
 
 Consider the scenario in which the front face direction of the grass blade is perpendicular to the view vector. Since our grass blades won't have width, we will end up trying to render parts of the grass that are actually smaller than the size of a pixel. This could lead to aliasing artifacts. These blades are culled using a simple dot product to check its orientation relative to the camera's look vector.
 
+*The gif below shows the blades that will be culled. Notice the blades in the distance that are causing aliasing.*
+
 ![](img/cull_orient.gif)
 
 
@@ -83,17 +85,23 @@ Consider the scenario in which the front face direction of the grass blade is pe
 
 We also want to cull blades that are outside of the view-frustum, considering they won't show up in the frame anyway.
 
+*The gif below shows an exaggerated view-frustum culling.*
+
 ![](img/cull_frust.gif)
 
 ##### Distance culling
 
 Similarly to orientation culling, we can end up with grass blades that at large distances are smaller than the size of a pixel. This could lead to additional artifacts in our renders. In this case, we can cull grass blades as a function of their distance from the camera. The probability of a blade to get drawn decreases with increasing distance.
 
+*The gif below shows the result of distance culling.*
+
 ![](img/cull_dist.gif)
 
 ### Distance based tessellation of Bezier curves
 
 The grass blades are tesselated as quads with details based on distance. The blades farther away have less tesselation than those close to the camera. This [tutorial on tessellation ](http://in2gpu.com/2014/07/12/tessellation-tutorial-opengl-4-3/) was referenced for understanding tesselation shaders.
+
+*The gif below shows the result of tesselation based on distance to get high details closer to the camera, and low-poly blades far away.*
 
 ![](img/tess_dist.gif)
 
