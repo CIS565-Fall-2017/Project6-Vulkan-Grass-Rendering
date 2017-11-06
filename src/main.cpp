@@ -3,13 +3,18 @@
 #include "Window.h"
 #include "Renderer.h"
 #include "Camera.h"
+#include "CollidorSphere.h"
 #include "Scene.h"
 #include "Image.h"
+
+#include <iostream> // print fps
 
 Device* device;
 SwapChain* swapChain;
 Renderer* renderer;
 Camera* camera;
+CollidorSphere* collidorSphere;
+
 
 namespace {
     void resizeCallback(GLFWwindow* window, int width, int height) {
@@ -63,11 +68,32 @@ namespace {
             previousY = yPosition;
         }
     }
+
+	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+		if (action == GLFW_PRESS || action == GLFW_REPEAT) {
+			switch (key) {
+			case GLFW_KEY_W:
+				collidorSphere->UpdatePosition(glm::vec3(0.0f, 0.0f, -1.0f));
+				break;
+			case GLFW_KEY_A:
+				collidorSphere->UpdatePosition(glm::vec3(-1.0f, 0.0f, 0.0f));
+				break;
+			case GLFW_KEY_S:
+				collidorSphere->UpdatePosition(glm::vec3(0.0f, 0.0f, 1.0f));
+				break;
+			case GLFW_KEY_D:
+				collidorSphere->UpdatePosition(glm::vec3(1.0f, 0.0f, 0.0f));
+				break;
+			}
+		}
+	}
 }
 
 int main() {
     static constexpr char* applicationName = "Vulkan Grass Rendering";
-    InitializeWindow(640, 480, applicationName);
+    //InitializeWindow(640, 480, applicationName);
+
+	InitializeWindow(1280, 960, applicationName);
 
     unsigned int glfwExtensionCount = 0;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -90,7 +116,10 @@ int main() {
 
     swapChain = device->CreateSwapChain(surface, 5);
 
-    camera = new Camera(device, 640.f / 480.f);
+    //camera = new Camera(device, 640.f / 480.f);
+	camera = new Camera(device, 1280.f / 960.f);
+
+	collidorSphere = new CollidorSphere(device, glm::vec3(0.0f, 6.0f, 0.0f), 5.0f);
 
     VkCommandPoolCreateInfo transferPoolInfo = {};
     transferPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -116,7 +145,8 @@ int main() {
         grassImageMemory
     );
 
-    float planeDim = 15.f;
+    //float planeDim = 15.f;
+	float planeDim = 50.f;
     float halfWidth = planeDim * 0.5f;
     Model* plane = new Model(device, transferCommandPool,
         {
@@ -137,13 +167,25 @@ int main() {
     scene->AddModel(plane);
     scene->AddBlades(blades);
 
-    renderer = new Renderer(device, swapChain, scene, camera);
+    renderer = new Renderer(device, swapChain, scene, camera, collidorSphere);
 
+
+	glfwSetKeyCallback(GetGLFWWindow(), keyCallback);
     glfwSetWindowSizeCallback(GetGLFWWindow(), resizeCallback);
     glfwSetMouseButtonCallback(GetGLFWWindow(), mouseDownCallback);
     glfwSetCursorPosCallback(GetGLFWWindow(), mouseMoveCallback);
 
+	float lastTime = scene->getTotalTime();
+	float nFrames = 0.0f;
+
     while (!ShouldQuit()) {
+		nFrames += 1.0f;
+		if (scene->getTotalTime() - lastTime >= 1.0) {
+			std::cout << "FPS " << nFrames << " , "<< (1000.0f / nFrames) << " ms/frame" <<std::endl;
+			nFrames = 0.0f;
+			lastTime += 1.0f;
+		}
+
         glfwPollEvents();
         scene->UpdateTime();
         renderer->Frame();

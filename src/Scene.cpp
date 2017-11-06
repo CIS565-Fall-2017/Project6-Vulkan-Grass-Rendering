@@ -38,6 +38,10 @@ VkBuffer Scene::GetTimeBuffer() const {
     return timeBuffer;
 }
 
+float Scene::getTotalTime() {
+	return time.totalTime;
+}
+
 Scene::~Scene() {
     vkUnmapMemory(device->GetVkDevice(), timeBufferMemory);
     vkDestroyBuffer(device->GetVkDevice(), timeBuffer, nullptr);

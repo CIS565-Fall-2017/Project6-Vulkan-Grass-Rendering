@@ -21,6 +21,11 @@ struct Blade {
     vec4 up;
 };
 
+layout(set = 2, binding = 0) uniform CollidorSphereObject {
+    vec4 collidorSphereInfo;
+} collidorSphere;
+
+
 // TODO: Add bindings to:
 // 1. Store the input blades
 // 2. Write out the culled blades
@@ -28,13 +33,24 @@ struct Blade {
 
 // The project is using vkCmdDrawIndirect to use a buffer as the arguments for a draw call
 // This is sort of an advanced feature so we've showed you what this buffer should look like
-//
-// layout(set = ???, binding = ???) buffer NumBlades {
-// 	  uint vertexCount;   // Write the number of blades remaining here
-// 	  uint instanceCount; // = 1
-// 	  uint firstVertex;   // = 0
-// 	  uint firstInstance; // = 0
-// } numBlades;
+
+
+layout(set = 3, binding = 0) buffer Blades {
+ 	Blade blades[];
+};
+
+layout(set = 3, binding = 1) buffer CulledBlades {
+ 	Blade culledBlades[];
+};
+
+layout(set = 3, binding = 2) buffer NumBlades {
+ 	  uint vertexCount;   // Write the number of blades remaining here
+ 	  uint instanceCount; // = 1
+ 	  uint firstVertex;   // = 0
+ 	  uint firstInstance; // = 0
+} numBlades;
+
+
 
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
@@ -43,14 +59,199 @@ bool inBounds(float value, float bounds) {
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
+		numBlades.vertexCount = 0;
 	}
+
+	uint index = gl_GlobalInvocationID.x;
+
 	barrier(); // Wait till all threads reach this point
 
+	Blade thisBlade = blades[index];
+
+	// ---------------------------------------------------------------------------------------
+
     // TODO: Apply forces on every blade and update the vertices in the buffer
+	
+	// Extra information we need from blade
+	vec3 v0_vec3    = thisBlade.v0.xyz;
+	float direction = thisBlade.v0.w; 
+
+	float height = thisBlade.v1.w;
+
+	vec3 v2_vec3 = thisBlade.v2.xyz;
+
+	vec3 up_vec3 = thisBlade.up.xyz;
+	float stiffnessCo = thisBlade.up.w;
+
+	
+	// Recovery force
+	vec3 iv2 = v0_vec3 + up_vec3 * height; //initial position of v2
+
+	vec3 recovery = stiffnessCo * (iv2 - v2_vec3); 
+	
+
+	// Gravity
+	float gravityAccel = 9.8;
+	vec3 gravityDir = -normalize(up_vec3); // assume gravity has the opposite direction as up
+
+	vec3 gE = gravityAccel * gravityDir;
+
+	vec3 direction_vec = -normalize(vec3(sin(direction), 0.0, cos(direction)));
+
+	vec3 gF = 0.25 * length(gE) * direction_vec;
+
+	vec3 g = gE + gF;
+
+	// Wind force
+	float frequency = 3.0;
+	float windIntensity = 5.0;
+	vec3 windDirection = normalize(vec3(1.0, 0, 0));
+
+	// simple sin wind function
+	vec3 wi_v0 = windIntensity * (0.5 * sin(0.8 * 3.1415926) + sin(0.2 * v0_vec3.x + totalTime/frequency) + 1.5) * windDirection;
+	//vec3 wi_v0 = windIntensity * (sin(0.8 * 3.1415926)) * windDirection;
+
+	vec3 v0_to_v2 = v2_vec3 - v0_vec3;
+
+	float f_d = 1.0 - abs(dot(wi_v0 / length(wi_v0), (v0_to_v2) / length(v0_to_v2)));
+	float f_r = dot(v0_to_v2, up_vec3) / height;
+
+	vec3 windForce = f_d * f_r * wi_v0;
+
+	// Collision Translation
+	vec3 collidorSphereCentroid = collidorSphere.collidorSphereInfo.xyz;
+
+	//collidorSphereCentroid.x += 5.0 * sin(totalTime / frequency);
+	//collidorSphereCentroid.z += 5.0 * cos(totalTime / frequency);
+
+	float collidorShpereR = collidorSphere.collidorSphereInfo.w;
+
+	vec3 collision_m  = 0.25 * v0_vec3 + 0.5 * thisBlade.v1.xyz + 0.25 * v2_vec3;
+
+	// a collision of reaction of m has to be translated to a reaction of v2
+	vec3 d = 4.0 * min(length(collidorSphereCentroid - collision_m) - collidorShpereR, 0) * normalize(collidorSphereCentroid - collision_m);
+	
+	// a collision of reaction of v2
+	d += min(length(collidorSphereCentroid - v2_vec3) - collidorShpereR, 0) * normalize(collidorSphereCentroid - v2_vec3);
+
+	// move V2
+	v2_vec3 += deltaTime * (recovery + g + windForce);
+	v2_vec3 += d;
+
+
+
+	// State Validation
+	// Ensure v2 is above the local plane
+	float tmp = min(dot(up_vec3, v2_vec3 - v0_vec3), 0);
+	v2_vec3 = v2_vec3 - tmp * up_vec3;
+
+	// Get v1 acoording to v0 and v2
+	float l_proj = length(v2_vec3 - v0_vec3 - dot(v2_vec3 - v0_vec3, up_vec3) * up_vec3);
+
+	float l_proj_over_h = l_proj / height;
+
+	vec3 v1_vec3 = v0_vec3 + height * max(1.0 - l_proj_over_h, 0.05 * max(l_proj_over_h, 1.0)) * up_vec3;
+
+	// Correction
+	float L0 = distance(v2_vec3, v0_vec3);
+	float L1 = distance(v2_vec3, v1_vec3) + distance(v1_vec3, v0_vec3);
+	float n = 3.0; // This is Bezier curve degree
+
+	float L = (2.0 * L0 + (n - 1.0) * L1) / (n + 1.0);
+	float r = height / L;
+
+	vec3 v1_vec3_corr = v0_vec3 + r * (v1_vec3 - v0_vec3);
+	vec3 v2_vec3_corr = v1_vec3_corr + r * (v2_vec3 - v1_vec3);
+
+	thisBlade.v1.xyz = v1_vec3_corr;
+	thisBlade.v2.xyz = v2_vec3_corr;
+
+	blades[index] = thisBlade; // write back
+
+	// ---------------------------------------------------------------------------------------
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
+	
+
+	// Orientation culling
+	bool isOrientationCulled = false;
+	vec3 viewDir;
+	float oriCullThreshold = 0.05f;
+
+	// mat4 should be column major
+	viewDir.x = camera.view[0][0] + camera.view[0][1] + camera.view[0][2]; // view - Right
+	viewDir.y = 0;
+	viewDir.z = camera.view[2][0] + camera.view[2][1] + camera.view[2][2]; // view - Forward
+	viewDir = normalize(viewDir);
+
+	if(abs(dot(viewDir, direction_vec)) < oriCullThreshold){
+		isOrientationCulled = true;
+	}
+
+	
+
+	// Viewfrustum culling
+	mat4 VP = camera.proj * camera.view;
+	vec4 viewfrustumTest_v0 = vec4(thisBlade.v0.xyz, 1.0);
+	vec4 viewfrustumTest_m  = vec4(0.25 * thisBlade.v0.xyz + 0.5 * thisBlade.v1.xyz + 0.25 * thisBlade.v2.xyz, 1.0);
+	vec4 viewfrustumTest_v2 = vec4(thisBlade.v2.xyz, 1.0);
+	
+	viewfrustumTest_v0 = VP * viewfrustumTest_v0;
+	viewfrustumTest_v0 /= viewfrustumTest_v0.w;
+
+	float t = 0.3; // threshold value
+
+	float h = viewfrustumTest_v0.w + t;
+	bool is_v0_in_frustem = (viewfrustumTest_v0.x >= -h) && (viewfrustumTest_v0.x <= h) && (viewfrustumTest_v0.y >= -h) && (viewfrustumTest_v0.y <= h) && (viewfrustumTest_v0.z >= -h) && (viewfrustumTest_v0.z <= h);
+	
+	h = viewfrustumTest_m.w + t;
+	bool is_m_in_frustem  = (viewfrustumTest_m.x  >= -h) && (viewfrustumTest_m.x  <= h) && (viewfrustumTest_m.y  >= -h) && (viewfrustumTest_m.y  <= h) && (viewfrustumTest_m.z  >= -h) && (viewfrustumTest_m.z  <= h);
+
+	h = viewfrustumTest_v2.w + t;
+	bool is_v2_in_frustem = (viewfrustumTest_v2.x >= -h) && (viewfrustumTest_v2.x <= h) && (viewfrustumTest_v2.y >= -h) && (viewfrustumTest_v2.y <= h) && (viewfrustumTest_v2.z >= -h) && (viewfrustumTest_v2.z <= h);
+	
+	bool isViewfrustumCulled = ((!is_v0_in_frustem) && (!is_m_in_frustem) && (!is_v2_in_frustem));
+
+
+
+
+	// Distance culling
+	float maxCullingDistance = 100.0;
+	uint numOfDistanceCullBuckets = 5;
+
+	vec3 cameraPos;
+	cameraPos.x = -camera.view[3][0];
+	cameraPos.y = -camera.view[3][1];
+	cameraPos.z = -camera.view[3][2];
+
+	float d_proj = length(v0_vec3 - cameraPos - dot(v0_vec3 - cameraPos , up_vec3) * up_vec3);
+	
+	uint tmp1 = (index % numOfDistanceCullBuckets);
+	float tmp2 = floor(numOfDistanceCullBuckets * (1.0 - d_proj / maxCullingDistance));
+
+	bool isDistanceCulled = !( tmp1 <= uint(tmp2) );
+
+
+	// orientation culling debug
+//	if(isOrientationCulled){
+//		culledBlades[atomicAdd(numBlades.vertexCount , 1)] = thisBlade;
+//	}
+
+	// view frustum culling debug
+//  if(isViewfrustumCulled){
+//		culledBlades[atomicAdd(numBlades.vertexCount , 1)] = thisBlade;
+//	}
+	
+	// distance culling debug
+//  if(isDistanceCulled){
+//		culledBlades[atomicAdd(numBlades.vertexCount , 1)] = thisBlade;
+//	}
+
+	if(!isOrientationCulled && !isViewfrustumCulled && !isDistanceCulled){
+		culledBlades[atomicAdd(numBlades.vertexCount , 1)] = thisBlade;
+	}
+	
 }

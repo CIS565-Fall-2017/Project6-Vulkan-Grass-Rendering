@@ -190,6 +190,9 @@ VkSemaphore SwapChain::GetRenderFinishedVkSemaphore() const {
 
 void SwapChain::Recreate() {
     Destroy();
+
+	//glfwSetWindowSize(GetGLFWWindow(), width, height);
+
     Create();
 }
 
@@ -233,6 +236,7 @@ bool SwapChain::Present() {
     }
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+
         Recreate();
         return false;
     }

@@ -4,11 +4,12 @@
 #include "SwapChain.h"
 #include "Scene.h"
 #include "Camera.h"
+#include "CollidorSphere.h"
 
 class Renderer {
 public:
     Renderer() = delete;
-    Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* camera);
+    Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* camera, CollidorSphere* collidorSphere);
     ~Renderer();
 
     void CreateCommandPools();
@@ -19,6 +20,8 @@ public:
     void CreateModelDescriptorSetLayout();
     void CreateTimeDescriptorSetLayout();
     void CreateComputeDescriptorSetLayout();
+	void CreateCollidorSphereDescriptorSetLayout();
+
 
     void CreateDescriptorPool();
 
@@ -27,6 +30,7 @@ public:
     void CreateGrassDescriptorSets();
     void CreateTimeDescriptorSet();
     void CreateComputeDescriptorSets();
+	void CreateCollidorSphereDescriptorSet();
 
     void CreateGraphicsPipeline();
     void CreateGrassPipeline();
@@ -48,6 +52,9 @@ private:
     Scene* scene;
     Camera* camera;
 
+	CollidorSphere* collidorSphere;
+
+
     VkCommandPool graphicsCommandPool;
     VkCommandPool computeCommandPool;
 
@@ -56,12 +63,18 @@ private:
     VkDescriptorSetLayout cameraDescriptorSetLayout;
     VkDescriptorSetLayout modelDescriptorSetLayout;
     VkDescriptorSetLayout timeDescriptorSetLayout;
-    
+	VkDescriptorSetLayout computeDescriptorSetLayout;
+	VkDescriptorSetLayout collidorSphereDescriptorSetLayout;
+
     VkDescriptorPool descriptorPool;
 
     VkDescriptorSet cameraDescriptorSet;
     std::vector<VkDescriptorSet> modelDescriptorSets;
     VkDescriptorSet timeDescriptorSet;
+	std::vector<VkDescriptorSet> computeDescriptorSets;
+	std::vector<VkDescriptorSet> grassDescriptorSets;
+	VkDescriptorSet collidorSphereDescriptorSet;
+
 
     VkPipelineLayout graphicsPipelineLayout;
     VkPipelineLayout grassPipelineLayout;
