@@ -97,3 +97,23 @@ As the culling threshold is increased, grass is able to render further to the ed
 |:-:|:-:|:-:|:-:|:-:|
 |Two buckets.|Three buckets.|Four buckets.|Five buckets.|Fifteen buckets.|
 
+The buckets are each assigned an identifier, with buckets in section zero being those in the very center. Every blade of grass in bucket zero is rendered, and as the bucket indentifier increases some number of grass blades are randomly culled out of the bucket. The probability of being culled increases the higher the bucket identifier. This is subtly visible in the images above by comparing the last image to the first; the grass at the edges of the scene is thinning almost unnoticeably as that bucket has greater probability to be culled. This results in a way to keep scene quality high while providing significant performance improvements.
+
+## Performance Analysis
+
+The following performance benchmarks were performed on a 150x150 plane with triangle-shaped grass, distance culling set to 150 maximum with 15 buckets, frustum culling tolerance set to 0.09, and orientation culling threshold set to 0.1. These tests track the average time it takes to render one frame across 1000 frames for a given number of grass blades. During these tests, the camera was positioned slightly above the center of the plane and pointed towards a corner.
+
+|![Performance optimization results.](img/optChart.png)|![An optimized field.](img/optimized.gif)|
+|:-:|:-:|
+|Performance optimization results.|An optimized field.|
+
+
+This test allows us to compare the performance benefits to be gained through various optimization techniques. Right away, we can see that frame rendering time is increasing exponentially with an exponential increase in the number of blades of grass. This is not bad. The orientation culling optimization does not provide that great a benefit when the threshold is set to such a limited value. Distance culling provides a significant improvement to performance by thinning out the grass at far ranges. Frustum culling offers enormous improvements to performance when it removes vast quantities of invisible grass. Altogether, the three optimizations seem to offer an 8x improvement in rendering performance.
+
+## Bloopers
+
+I added a fun bit of code for making the grass grow over time.
+
+|![A bug when I was working on the shader.](img/fragment_bug.PNG)|![Watching the grass grow.](img/growing.gif)|
+|:-:|:-:|
+|A bug when I was working on the shader.|Watching the grass grow.|
