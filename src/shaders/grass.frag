@@ -13,11 +13,16 @@ layout(location = 1) in vec4 inNor;
 
 layout(location = 0) out vec4 outColor;
 
+vec3 color(float r, float g, float b)
+{
+	return vec3(r / 255.0, g / 255.0, b / 255.0);
+}
+
 void main() {
     // TODO: Compute fragment color
 
-	vec3 green1 = vec3(0.0, 0.36, 0.035);
-	vec3 green2 = vec3(0.0039, 0.65, 0.067);
+	vec3 green1 = color(0.0, 92.0, 0.0);
+	vec3 green2 = color(0.0, 104.0, 10.0);
 
 	vec3 lightPos = vec3(5.0, 20.0, 0.0);
 	vec3 lightDir = (lightPos - inPos.xyz) / distance(lightPos, inPos.xyz);
@@ -25,6 +30,6 @@ void main() {
 	float lambert = max(dot(inNor.xyz, lightDir), 0.0);
 	float lightIntensity = 1.5f;
 
-	vec3 col = lambert * lightIntensity * green2 + green2;
+	vec3 col = lambert * lightIntensity * green2 + green1;
     outColor = vec4(col, 1.0);
 }

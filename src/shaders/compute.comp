@@ -173,7 +173,7 @@ void main()
 	if(!inBounds(px, h) || !inBounds(py, h) || !inBounds(pz, h)) {
 		return;
 	}
-
+	
 	// Distance test ----------------------------------
 	// Culls blades based on their distance towards the camera
 
