@@ -151,7 +151,7 @@ int main() {
 		glfwPollEvents();
 
 		//record time
-        //scene->UpdateTime();
+        scene->UpdateTime();
 		//start = clock();
 		
 		renderer->Frame();
