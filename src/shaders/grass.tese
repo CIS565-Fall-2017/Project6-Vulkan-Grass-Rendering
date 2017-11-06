@@ -41,7 +41,7 @@ void main() {
 	                            tese_bitangent.xyz *  tese_bitangent.w * (u > 0.5 ? 1.0 : -1.0) * (1.0 - v);
 	
 	// compute normal
-	fs_normal = normalize(cross(vec3(bezierB - bezierA), tese_bitangent.xyz));
+	fs_normal = normalize(cross(normalize(vec3(bezierB - bezierA)), tese_bitangent.xyz));
 
 	// hard-coded height
 	//worldPos.y += 2.0 * v;
@@ -52,9 +52,11 @@ void main() {
 	//			  v <= 0.99 ? 0.6 :
 	//			              1.0;
 
-	if (v >= 0.9) {
-		worldPos = tese_v2;
-	}
+	// middle displacement ====================================================
+	// TODO
+	// d = w n (0.5 - |u - 0.5|(1 - v))
+	//vec3 middleDisplacement = tese_bitangent.w * fs_normal * (0.5 - abs(u - 0.5) * (1.0 - v));
+	//worldPos.xyz += middleDisplacement;
 
 	gl_Position = viewProj * worldPos;
 	fs_color = tese_color;

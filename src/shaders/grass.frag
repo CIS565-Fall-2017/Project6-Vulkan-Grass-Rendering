@@ -20,10 +20,11 @@ void main() {
 	}
 	else {
 		// use green + lambert shading
-		const vec3 lightDir = vec3(0.577350269, -0.577350269, -0.577350269);
+		const vec3 lightDir = vec3(-0.577350269, 0.577350269, 0.577350269);
 		float lambert = max(dot(fs_normal, lightDir), dot(-fs_normal, lightDir));
-		lambert = clamp(lambert, 0.25, 1.0);
+		lambert = clamp(lambert, 0.25, 1.0) * 0.7 + 0.3;
 		vec3 color = vec3(0.1, 0.9, 0.2) * lambert;
 		outColor = vec4(color, 1.0);
 	}
+	//outColor = vec4(abs(fs_normal), 1.0);
 }

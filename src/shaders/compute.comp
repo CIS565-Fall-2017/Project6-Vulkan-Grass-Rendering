@@ -2,7 +2,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 
 #define DISTANCE_BUCKETS 8
-#define MAX_DISTANCE 60.0
+#define MAX_DISTANCE 65.0
 
 #define WIND_TO_COLOR_FACTOR 0.03
 #define WIND_X 0
@@ -10,10 +10,16 @@
 #define WIND_Z 2
 #define WIND_RADIAL 3
 #define WIND_CIRCLE 4
-#define WIND_TYPE WIND_RADIAL
+#define WIND_XZ 5
+#define WIND_CONST 6
+#define WIND_TYPE WIND_CONST
 #define WIND_CIRCLE_RADIUS 5.0
 
-#define USE_CUSTOM_COLOR 1
+#define USE_CUSTOM_COLOR 0
+
+#define ORIENTATION_CULL 1
+#define FRUSTUM_CULL 1
+#define DISTANCE_CULL 1
 
 #define WORKGROUP_SIZE 32
 layout(local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
@@ -126,8 +132,17 @@ void main() {
 	vec3 windRaw = vec3(0.0, 0.9, 0.0) * (sin(totalTime)) * 400.0 + vec3(0.1, 0.0, 0.1) * 200.0;
 #elif WIND_TYPE == WIND_Z
 	vec3 windRaw = vec3(0.0, 0.0, 1.0) * (sin(totalTime) + 1.0) * 200.0;
+#elif WIND_TYPE == WIND_XZ
+	// 90% is determined by pow() term. we use pow to exaggerate the shape of sin() so it spends
+	// less time on higher values. this makes the wind spend less time being strong
+	// add constant 10% to prevent wind from completely stopping unnaturally
+	vec3 windRaw = vec3(1.0, 0.0, 0.0) * (pow((sin(totalTime * 0.75) * 0.5 + 0.5001), 4.0) * 180.0 + 20.0);
+	// make it depend on blade's Z as well so it's not one uniform wind force
+	windRaw *= (cos(totalTime * 2.5 + blade.v0.z) * 0.5 + 0.5001) * 0.8 + 0.2;
+	// very light dependency on X as well
+	windRaw *= (cos(totalTime * -8.0 + blade.v0.x) * 0.5 + 0.5001) * 0.5 + 0.5;
 #elif WIND_TYPE == WIND_RADIAL
-	vec3 windRaw = normalize(blade.v0.xyz) * (sin(totalTime * 5.0f + length(blade.v0.xyz)) + 1.0) * 200.0;
+	vec3 windRaw = normalize(blade.v0.xyz) * (sin(-totalTime * 5.0f + length(blade.v0.xyz)) + 1.0) * 200.0;
 #elif WIND_TYPE == WIND_CIRCLE
 	vec3 circlePoint = WIND_CIRCLE_RADIUS * vec3(cos(totalTime), 0.0, sin(totalTime));
 	// circleTangent will be wind direction
@@ -137,6 +152,8 @@ void main() {
 	float windStrength = (circlePointDist < WIND_CIRCLE_RADIUS) ? (1.0 - circlePointDist / WIND_CIRCLE_RADIUS) * 200.0
 	                                                            : 0.0;
 	vec3 windRaw = circleTangent * windStrength;
+#elif WIND_TYPE == WIND_CONST
+	vec3 windRaw = vec3(0.577350269, 0.577350269, -0.577350269) * 200.0;
 #endif
 	float windDirectionalAlignment = 1.0 - abs(dot(normalize(windRaw), normalize(blade.v2.xyz - blade.v0.xyz)));
 	float windHeightRatio = dot(blade.v2.xyz - blade.v0.xyz, blade.up.xyz) / height;
@@ -188,15 +205,18 @@ void main() {
 	// You want to write the visible blades to the buffer without write conflicts between threads
 	// use atomicAdd
 
-	// orientation culling ====================================================
 	mat4 inverseView = inverse(camera.view);
+#if ORIENTATION_CULL
+	// orientation culling ====================================================
 	
 	vec3 viewDir = normalize(vec3(inverseView * vec4(0.0, 0.0, 1.0, 0.0)));
 	// if viewDir and front are roughly perpendicular, cull
 	if (abs(dot(viewDir, front)) <= 0.05) {
 		return;
 	}
+#endif // ORIENTATION_CULL
 
+#if FRUSTUM_CULL
 	// view frustum culling ===================================================
 	vec3 midpoint = 0.25 * blade.v0.xyz + 0.5 * blade.v1.xyz + 0.25 * blade.v2.xyz;
 	
@@ -223,7 +243,9 @@ void main() {
 			}
 		}
 	}
+#endif // FRUSTUM_CULL
 
+#if DISTANCE_CULL
 	// distance culling =======================================================
 	vec3 cameraEye = vec3(inverseView[3]);
 	vec3 eyeToBlade = blade.v0.xyz - cameraEye;
@@ -237,6 +259,8 @@ void main() {
 	if (indexMod > cullability) {
 		return; // cull
 	}
+#endif // DISTANCE_CULL
+
 	//blade.v0.x += 1.0 * sin(totalTime);// + 3.14159265 * 0.5);
 	//blade.v0.z += 1.0 * cos(totalTime);
 	
