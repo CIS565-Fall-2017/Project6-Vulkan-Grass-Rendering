@@ -85,7 +85,15 @@ This optimization looks, within some tolerance value, for blades of grass that a
 
 ### Distance Culling
 
-|![Culled to a maximum distance of 1.](img/distance_cull_1.PNG)|
-|:-:|:-:|
-|A demonstration of culling with the view frustum.|
+The last optimization made in this implementation is that of distance culling. This optimization comes in two parts. In the compute shader there is specified a "MAX_DISTANCE" value which is a cut-off threshold representing a distance from the user's camera beyond which all blades of grass get culled from the scene. In the following examples, grass is culled from the center of the plane to demonstrate what changing the distance culling parameters does.
+
+|![Culled to a maximum distance of 1.](img/distance_cull_1.PNG)|![Culled to a maximum distance of 2.](img/distance_cull_2.PNG)|![Culled to a maximum distance of 3.](img/distance_cull_3.PNG)|![Culled to a maximum distance of 4.](img/distance_cull_4.PNG)|![Culled to a maximum distance of 9.](img/distance_cull_9.PNG)|
+|:-:|:-:|:-:|:-:|:-:|
+|Max distance one.|Max distance two.|Max distance three.|Max distance four.|Max distance nine.|
+
+As the culling threshold is increased, grass is able to render further to the edges of the scene. The second portion of distance culling is the representation of the renderable portion of the scene as several "buckets." These buckets represent regions of the scene where we can group together blades of grass a similar distance from the camera. This is configurable through the "NUM_BUCKETS" variable.
+
+|![Two buckets.](img/distance_cull_10_2b.PNG)|![Three buckets.](img/distance_cull_10_3b.PNG)|![Four buckets.](img/distance_cull_10_4b.PNG)|![Five buckets.](img/distance_cull_10_5b.PNG)|![Fifteen buckets.](img/distance_cull_10_15b.PNG)|
+|:-:|:-:|:-:|:-:|:-:|
+|Two buckets.|Three buckets.|Four buckets.|Five buckets.|Fifteen buckets.|
 
