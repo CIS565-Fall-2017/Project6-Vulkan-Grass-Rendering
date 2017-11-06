@@ -49,6 +49,8 @@ bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
 }
 
+// Random function from:
+// https://stackoverflow.com/questions/4200224/random-noise-functions-for-glsl
 float rand(vec2 co){
     return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
 }
@@ -161,13 +163,14 @@ void main() {
 		float bucketThreshold = (1 - dist)*25;
 	    cullDistance = random > bucketThreshold;
 	}
+
 	// Cull completely if less than 0.999
 	if (dist > 0.999) {
 	   cullDistance = true;
 	}
 
 
-	if (/*!cullOrientation && !cullViewFrustrum && */ !cullDistance) {
+	if (!cullOrientation && !cullViewFrustrum && !cullDistance) {
 	   culledBlades[atomicAdd(numBlades.vertexCount , 1)] = blades[idx];
 	}
 }
