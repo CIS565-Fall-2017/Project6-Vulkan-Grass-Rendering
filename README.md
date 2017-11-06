@@ -18,8 +18,7 @@ This project is an implementation of the paper, [Responsive Real-Time Grass Rend
 	- Vertex shader to transform Bezier control points
 	- Tessellation shaders (control and evaluation) to dynamically create the grass geometry from the Bezier curves
 	- Fragment shader to shade the grass blades
-
-### Representing Grass as Bezier Curves
+	
 ### Culling tests
 
 Although we need to simulate forces on every grass blade at every frame, there are many blades that we won't need to render
