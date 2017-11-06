@@ -12,10 +12,12 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 layout(location = 0) in vec4 tescIn_v0[];
 layout(location = 1) in vec4 tescIn_v1[];
 layout(location = 2) in vec4 tescIn_v2[];
+layout(location = 3) in vec4 tescIn_Up[];
 
 layout(location = 0) out vec4 teseIn_v0[];
 layout(location = 1) out vec4 teseIn_v1[];
 layout(location = 2) out vec4 teseIn_v2[];
+layout(location = 3) out vec4 teseIn_Up[];
 
 
 void main() {
@@ -26,12 +28,13 @@ void main() {
 	teseIn_v0[gl_InvocationID] = tescIn_v0[gl_InvocationID];
 	teseIn_v1[gl_InvocationID] = tescIn_v1[gl_InvocationID];
 	teseIn_v2[gl_InvocationID] = tescIn_v2[gl_InvocationID];
+    teseIn_Up[gl_InvocationID] = tescIn_Up[gl_InvocationID];
 
 	// TODO: Set level of tesselation
-     gl_TessLevelInner[0] = 4.0;
-     gl_TessLevelInner[1] = 3.0;
-     gl_TessLevelOuter[0] = 4.0;
-     gl_TessLevelOuter[1] = 4.0;
-     gl_TessLevelOuter[2] = 4.0;
-     gl_TessLevelOuter[3] = 4.0;
+     gl_TessLevelInner[0] = 1.0;
+     gl_TessLevelInner[1] = 6.0;
+     gl_TessLevelOuter[0] = 6.0;
+     gl_TessLevelOuter[1] = 1.0;
+     gl_TessLevelOuter[2] = 6.0;
+     gl_TessLevelOuter[3] = 1.0;
 }
