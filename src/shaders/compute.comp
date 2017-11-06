@@ -36,21 +36,179 @@ struct Blade {
 // 	  uint firstInstance; // = 0
 // } numBlades;
 
+//1.store the input blades
+layout (set=2, binding=0) buffer InputBlades {
+	Blade inputBlades[];
+};
+
+//2.culled blades
+layout (set=2, binding=1) buffer OutBlades {
+	Blade outBlades[];
+};
+
+//3.
+layout(set = 2, binding = 2) buffer NumBlades {
+	uint vertexCount;   // Write the number of blades remaining here
+	uint instanceCount; // = 1
+	uint firstVertex;   // = 0
+	uint firstInstance; // = 0
+} numBlades;
+
+
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
 }
 
+
+vec3 manuPos(vec3 p0, vec3 p1, vec3 p2, float c)
+{
+	vec3 a = p0 + c * (p1 -  p0);
+	vec3 b = p1 + c * (p2 - p1);
+	return a + c * (b - a);
+}
+
+
+
+
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
+		numBlades.vertexCount = 0;
 	}
+
 	barrier(); // Wait till all threads reach this point
 
     // TODO: Apply forces on every blade and update the vertices in the buffer
+	uint id = gl_GlobalInvocationID.x;
+	Blade inBlade = inputBlades[id];
+
+	vec3 p0 = inBlade.v0.xyz;
+	vec3 p1 = inBlade.v1.xyz;
+	vec3 p2 = inBlade.v2.xyz;
+
+	vec3 updir = inBlade.up.xyz;
+
+	//find the angle
+	float angle = inBlade.v0.w;
+	float sina = sin(angle);
+	float cosa = cos(angle);
+
+	float height = inBlade.v1.w;
+	vec3 nor = normalize(cross(updir, vec3(sina, 0, cosa)));
+
+	//external force
+	vec3 gE = vec3(0, -9.8, 0);
+	vec3 gF = 0.25 * length(gE) * nor;
+	vec3 g = gE + gF;
+
+
+	vec3 iv2 = p0 + updir * height; //the initial position of V2 as desired position
+	float maxn = 1.8;
+	vec3 r = (iv2 - p2) * inBlade.up.w * maxn / min(height,maxn);
+
+	vec3 winddir = normalize(vec3(1, 0, 0));
+	float windSpeed = 9.0;
+	float waveWidth = 5.5;
+	float waves = 0.5* cos( (dot( winddir, vec3(p0.x, 0.0, p0.z)) + totalTime*windSpeed) * (1.0/waveWidth) );
+	float alignment = 1.0 -  abs(dot(winddir ,normalize(p2 - p0)));
+	float heightratio = dot(p2 - p0, updir) / height;
+	float winds = 7.5;
+	vec3 w = winddir * alignment * heightratio * winds * waves;
+
+
+	vec3 deltx = (g + r + w) * deltaTime;
+	vec3 vp2 = p2 + deltx - updir*min(dot(updir, p2 + deltx - p0), 0.0);
+	float numerator = length(vp2 - p0 - updir * dot(vp2 - p0, updir));
+	float prate = numerator / height;
+	vec3 vp1 = p0 + updir* height * max(1.0 - prate , 0.05*max(prate,  1.0));
+
+	float degree = 3.0;
+	float L0 = distance(vp2,p0);
+	float L1 = distance(vp2,vp1) + distance(vp1,p0);
+	float L = (2.0*L0 + (degree - 1.0)*L1) / (degree + 1.0);
+	float ratio = height / L;
+
+	
+    inBlade.v1.xyz = p0 + ratio *(vp1 - p0);
+	inBlade.v2.xyz = inBlade.v1.xyz + ratio *(vp2 - vp1);
+    inputBlades[id] = inBlade;
+
+
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
+
+
+	p0 = inBlade.v0.xyz;
+	p1 = inBlade.v1.xyz;
+	p2 = inBlade.v2.xyz;
+
+	vec3 worldview = (inverse(camera.view) * vec4(0,0,1,0)).xyz;
+
+	float orientcullth = 0.1;
+	bool orientcull = abs(dot(nor, normalize(vec3(worldview.x, 0.0, worldview.z)))) < orientcullth;	
+
+
+	bool frustumcull;
+
+	vec4 screenp0= camera.proj * camera.view * vec4(p0, 1.0);
+	screenp0 /= screenp0.w;
+
+	vec4 screenp2= camera.proj * camera.view * vec4(p2, 1.0);
+	screenp2 /= screenp2.w;
+
+	vec3 lcon1p = manuPos(p0, p1, p2, 0.25);	
+		
+	vec3 lconp =   0.25*p0 * 0.5*p1 * 0.25*p2;
+
+	vec3 lcon2p = manuPos(p0, p1, p2, 0.75);	
+
+	vec4 pcon1p = camera.proj * camera.view * vec4(lcon1p, 1.0);
+	pcon1p /= pcon1p.w;
+
+	vec4 pconp= camera.proj * camera.view * vec4(lconp, 1.0);
+	pconp /= pconp.w;
+
+	vec4 pcon2p= camera.proj * camera.view * vec4(lcon2p, 1.0);
+	pcon2p /= pcon2p.w;
+
+	float scdimension = 1.5;
+
+	bool sc0frustum = (screenp0.x >= -scdimension && screenp0.x <= scdimension) &&  (screenp0.y >= -scdimension && screenp0.y <= scdimension)  && (screenp0.z >= 0.0 && screenp0.z <= 1.0);
+	bool sc1frustum = (screenp2.x >= -scdimension && screenp2.x <= scdimension) &&  (screenp2.y >= -scdimension && screenp2.y <= scdimension)  && (screenp2.z >= 0.0 && screenp2.z <= 1.0);
+	bool psc1frustum = (pcon1p.x >= -scdimension && pcon1p.x <= scdimension) &&  (pcon1p.y >= -scdimension && pcon1p.y <= scdimension)  && (pcon1p.z >= 0.0 && pcon1p.z <= 1.0);
+	bool pscfrustum = (pconp.x >= -scdimension && pconp.x <= scdimension) &&  (pconp.y >= -scdimension && pconp.y <= scdimension)  && (pconp.z >= 0.0 && pconp.z <= 1.0);
+	bool psc2frustum = (pcon2p.x >= -scdimension && pcon2p.x <= scdimension) &&  (pcon2p.y >= -scdimension && pcon2p.y <= scdimension)  && (pcon2p.z >= 0.0 && pcon2p.z <= 1.0);
+	bool frustumbol = sc0frustum || sc1frustum || psc1frustum || pscfrustum || psc2frustum;
+
+	if(frustumbol)
+	{
+		frustumcull = false;
+	}
+	else
+	{ 
+		frustumcull = true;
+	}
+
+
+	float near = 0.1;
+	float far = 100;
+	
+	bool farcull = true;
+	float ld =  (2.0 * near) / (far + near - screenp0.z * (far - near));
+
+	float dcth = 0.95;
+
+	if(ld <= dcth)
+	{
+		farcull = false;
+	}
+
+	if(!(orientcull || frustumcull || farcull))	
+	{
+		outBlades[atomicAdd(numBlades.vertexCount , 1)] = inBlade;
+	}	
 }
+
