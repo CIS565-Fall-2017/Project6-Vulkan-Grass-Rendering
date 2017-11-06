@@ -4,8 +4,7 @@ Vulkan Grass Rendering
 **University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 5**
 
 * Jiahao Liu
-* Tested on: **Google Chrome 61.0.3163.100(64 bits)** on
-  Windows 10, i7-3920XM CPU @ 2.90GHz 3.10 GHz 16GB, GTX 980m SLI 8192MB (personal computer)
+* Tested on: Windows 10, i7-3920XM CPU @ 2.90GHz 3.10 GHz 16GB, GTX 980m SLI 8192MB (personal computer)
 
 ### Demo Video/GIF
 
