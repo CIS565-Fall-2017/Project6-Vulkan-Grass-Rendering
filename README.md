@@ -25,7 +25,7 @@ ____________________________________________________
  
 The goal of this project was to simulate real time grass movement in Vulkan. This project is an implementation of [this paper](https://www.cg.tuwien.ac.at/research/publications/2017/JAHRMANN-2017-RRTG/JAHRMANN-2017-RRTG-draft.pdf).
 
-![poster](/img/poster.gif)
+![poster](/img/Poster.gif)
 
 ### Things Done
 
