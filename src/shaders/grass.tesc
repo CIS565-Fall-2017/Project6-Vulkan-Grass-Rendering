@@ -28,9 +28,9 @@ void main() {
 
 	// Set level of tesselation
     gl_TessLevelInner[0] = 1; 
-    gl_TessLevelInner[1] = 9;
-    gl_TessLevelOuter[0] = 9;
+    gl_TessLevelInner[1] = 1;
+    gl_TessLevelOuter[0] = 1;
     gl_TessLevelOuter[1] = 1;
-    gl_TessLevelOuter[2] = 9;
+    gl_TessLevelOuter[2] = 1;
     gl_TessLevelOuter[3] = 1;
 }
