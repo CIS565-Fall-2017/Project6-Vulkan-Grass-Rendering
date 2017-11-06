@@ -10,6 +10,7 @@
 # Overview
 
 ![](img/grassDemoGif.gif)
+![](img/ScreenCaptureProject3.gif)
 
 This project is an implementation of the paper [Responsive Real-Time Grass Grass Rendering for General 3D Scenes](https://www.cg.tuwien.ac.at/research/publications/2017/JAHRMANN-2017-RRTG/JAHRMANN-2017-RRTG-draft.pdf). I use compute shaders in a Vulkan compute pipeline to simulate physical forces on blades of grass, which are modeled as bezier curves composed of 3 control points. A separate graphics pipeline is used to tesselate the grass blades and rasterize them. 
 
