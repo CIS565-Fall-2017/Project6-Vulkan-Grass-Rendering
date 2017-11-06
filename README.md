@@ -113,12 +113,12 @@ The grass blades are tesselated as quads with details based on distance. The bla
 
 ### Performance evaluation
 
-| Blades (2^) | All optimizations | Cull - view frustum | Cull - distance | Cull - orientation |
-| ----- | ----- | ----- | ----- | ----- |
-|13     |    846|  	719 |	644 |	820 |
-|16     |283    |	199	|180    |	270 |
-|19     |52     |	32	|31	    |48     |
-|22     |7      |	5   |	5   |	7   |
+| Blades (2^) | All optimizations | w/o view frust cull | w/o dist cull | w/o orient cull | no culling |
+| ----- | ----- | ----- | ----- | ----- | ----- |
+|13     |    846|  	719 |	644 |	820 | 540 |
+|16     |283    |	199	|180    |	270 | 165 |
+|19     |52     |	32	|31	    |48     | 27 |
+|22     |7      |	5   |	5   |	7   | 4 |
 
 It is worth noting that orientation culling wasn't implemented for performance gain, but to reduce the aliasing artefact. The other two techniques give a significant boost.
 
