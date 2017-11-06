@@ -38,6 +38,7 @@ Three major culling techniques are used in this project. The orientation test cu
 From the figure above, the distance test contributes most to the performance. It makes sense in that the number of blades to be culled increases very fast as the total number of grass blades grows. All the blades beyond a certain distance are eliminated(shown in the figure below). While for other techniques such as orientation test, the contribution is limited since those blades that are parrallel to the camera view direction is evenly distributed and the number culled are linear to the total number of blades.
 
 [![](https://github.com/wufk/Project6-Vulkan-Grass-Rendering/blob/master/img/distance.PNG)]()
+
 Effect of distance culling
 
 ### Tessellation
