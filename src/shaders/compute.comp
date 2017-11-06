@@ -134,7 +134,7 @@ void main() {
 	mat4 inverseView = inverse(camera.view);
 	vec4 dirc = inverseView * vec4(0.0,0.0,1.0,0.0);
 	float oCull = abs(dot(dirc.xyz, atw.xyz));
-	if (oCull < 0.9) {
+	if (oCull < 0.85) {
 		culled = true;
 	}
 
