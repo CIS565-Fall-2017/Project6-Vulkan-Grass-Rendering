@@ -16,14 +16,22 @@ void main() {
     // simple blinn shading
 	
 	vec3 N = normalize(f_nor);
-	vec3 lightDir = (camera.view * vec4(normalize(vec3(-1.0)), 0.0)).xyz;
+	N = faceforward(N, normalize(-f_pos), -N);
+	vec3 lightDir = (camera.view * vec4(1.0, 0.0, 0.0, 0.0)).xyz;
+	//vec3 lightDir = normalize(f_pos - (camera.view * vec4(0.0, 5.0, 0.0, 1.0)).xyz);
 	vec3 H = normalize(normalize(-f_pos) - lightDir); // view space
 	vec3 specColor = vec3(0.2);
 	vec3 diffColor = vec3(0.5, 0.8, 0.4);
+	vec3 backScatter = vec3(0.2, 1.0, 0.2);
+
 	diffColor *= max(0.0, dot(N, -lightDir));
 	specColor *= pow(max(0.0, dot(N, H)), 32.0);
+	backScatter *= 0.8 * pow(max(0.0, dot(-N, H)), 8.0) + 0.2 * max(0.0, dot(-N, -lightDir));
 
-    outColor = vec4(specColor + diffColor, 1.0);
+    outColor = vec4(specColor + diffColor + backScatter, 1.0);
+
+	//float bleh = max(0.0, dot(N, -lightDir));
+	//outColor.xyz = specColor;
 	//outColor.xyz = pow(outColor.xyz, vec3(0.4545));
 	//outColor.xyz = abs(f_nor);
 

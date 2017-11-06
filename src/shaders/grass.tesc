@@ -31,7 +31,7 @@ void main() {
 	e_v1[gl_InvocationID] = p1;
 	e_v2[gl_InvocationID] = p2;
 	vec4 e_o = vec4(0);
-	e_o.xyz = vec3(cos(p1.w + 1.5708), 0, sin(p1.w + 1.5708)); // 90 deg from orientation
+	e_o.xyz = vec3(-sin(p1.w), 0, cos(p1.w)); // 90 deg from orientation
 
 	e_o.w = p2.w; // width
 	e_orthogonal[gl_InvocationID] = e_o;
