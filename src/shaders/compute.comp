@@ -2,6 +2,11 @@
 #extension GL_ARB_separate_shader_objects : enable
 
 #define WORKGROUP_SIZE 32
+#define GRAV_ACCELERATION 9.8
+#define TOLERANCE 1.0
+#define CULLLEVEL 10.0
+#define DMAX 50.0
+
 layout(local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 layout(set = 0, binding = 0) uniform CameraBufferObject {
@@ -36,6 +41,25 @@ struct Blade {
 // 	  uint firstInstance; // = 0
 // } numBlades;
 
+//===========================================================================
+
+layout(set = 2, binding = 0) buffer Blades {
+	Blade blades[];
+};
+
+layout(set = 2, binding = 1) buffer CulledBlades {
+	Blade culledBlades[];
+};
+
+layout(set = 2, binding = 2) buffer NumBlades {
+	uint vertexCount;   // Write the number of blades remaining here
+	uint instanceCount; // = 1
+	uint firstVertex;   // = 0
+	uint firstInstance; // = 0
+} numBlades;
+
+//===========================================================================
+
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
 }
@@ -43,14 +67,118 @@ bool inBounds(float value, float bounds) {
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
+		numBlades.vertexCount = 0;
 	}
 	barrier(); // Wait till all threads reach this point
 
-    // TODO: Apply forces on every blade and update the vertices in the buffer
+    //==========================================================================================================================
+	// TODO: Apply forces on every blade and update the vertices in the buffer
+	
+	uint index = gl_GlobalInvocationID.x;
 
+	vec3 v0 = blades[index].v0.xyz;
+	vec3 v1 = blades[index].v1.xyz;
+	vec3 v2 = blades[index].v2.xyz;
+	vec3 up = blades[index].up.xyz;
+
+	float orientation = blades[index].v0.w;
+	float height = blades[index].v1.w;
+	float width = blades[index].v2.w;
+	float stiffness = blades[index].up.w;
+
+	//============ Calculate the direction of the blade ============
+    float sd = sin(orientation);
+    float cd = cos(orientation);
+    vec3 tmp = normalize(vec3(sd, sd + cd, cd)); //arbitrary vector for finding normal vector
+    vec3 bladeDir = normalize(cross(up, tmp));
+    vec3 bladeFront = normalize(cross(up, bladeDir));
+
+	//======================== Gravity ========================
+	vec4 D = vec4(0.0, -1.0, 0.0, GRAV_ACCELERATION);//--------------------------
+	vec3 g_e = normalize(D.xyz) * GRAV_ACCELERATION;
+	vec3 g_f = length(g_e) * 0.25f * bladeFront;
+	vec3 gravity = g_e + g_f;
+
+	//========================== Wind ==========================
+	vec4 windData = vec4(sin(totalTime)); //--------------------------
+    float windPos = 1.0f - max((cos((v0.x + v0.z) * 0.75f + windData.w) + sin((v0.x + v0.y) * 0.5f + windData.w) + sin((v0.y + v0.z) * 0.25f + windData.w)) / 3.0f, 0.0f);
+    vec3 windVec = windData.xyz * windPos;
+	float f_d = 1.0f - abs(dot(normalize(windVec), normalize(v2 - v0)));
+    float f_r = abs(dot(v2 - v0, up)) / height;
+    vec3 wind = windVec * f_d * f_r;
+
+	//======================== Recovery ========================
+    vec3 iv2 = v0 + up * height;
+	vec3 recovery = (iv2 - v2) * stiffness;
+
+	//==================== Apply new forces ====================
+    v2 += (gravity + wind + recovery) * deltaTime;
+
+	//==================== State Validation ====================
+	//=== Condition 1 : v2 must not be pushed beneath the ground.
+	v2 += up * -min(dot(up, v2 -v0), 0.0f);
+
+	//=== Condition 2 : v1 has to be set according to v2.
+	float l_proj = length(v2 - v0 - dot(v2- v0, up) * up);
+    v1 = v0 + height * max(1.0f - l_proj / height, 0.05f * max(l_proj / height, 1.0f)) * up;
+	
+	//=== Condition 3 : the length of the curve must be equal to the height.
+    float L1 = length(v1 - v0) + length(v2 - v1);
+    float L0 = length(v2 - v0);
+    float L = (2.0f * L0 + L1) / 3.0f; 
+    float r_hl = height / L;
+    v1 = v0 + (v1- v0) * r_hl;
+    v2 = v1 + (v2- v1) * r_hl;
+
+	//================== Update Blades buffer ==================
+	blades[index].v1.xyz = v1;
+	blades[index].v2.xyz = v2;
+
+	
+	//======================================================================================================================================
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
+
+	
+	//=================== Orientation Test ===================
+	vec4 camPos = inverse(camera.view) * vec4(0.0f, 0.0f, 0.0f, 1.0f);
+	vec3 camDir = v0 - camPos.xyz;
+    bool orienTest = abs(dot(normalize(camDir), bladeDir)) < 0.9f;
+	// true -> keep
+
+	//================== View-Frustum Test ==================
+	vec3 vmid = 0.25f * v0 + 0.5f * v1 + 0.25f * v2;
+	mat4 VPMatrix = camera.proj * camera.view;
+	vec4 v0_NDC = VPMatrix * vec4(v0, 1.0f);
+	vec4 vmid_NDC = VPMatrix * vec4(vmid, 1.0f);
+	vec4 v2_NDC = VPMatrix * vec4(v2,1.0f);
+	float tolerance = TOLERANCE;
+	float h_tol = v0_NDC.w + tolerance;
+	bool viewfTest = v0_NDC.x >= -h_tol && v0_NDC.x <= h_tol &&
+					 v0_NDC.y >= -h_tol && v0_NDC.y <= h_tol &&
+					 v0_NDC.z >= -h_tol && v0_NDC.z <= h_tol ||
+					 vmid_NDC.x >= -h_tol && vmid_NDC.x <= h_tol &&
+					 vmid_NDC.y >= -h_tol && vmid_NDC.y <= h_tol &&
+					 vmid_NDC.z >= -h_tol && vmid_NDC.z <= h_tol ||
+					 v2_NDC.x >= -h_tol && v2_NDC.x <= h_tol &&
+					 v2_NDC.y >= -h_tol && v2_NDC.y <= h_tol &&
+					 v2_NDC.z >= -h_tol && v2_NDC.z <= h_tol;
+	// true -> keep
+
+	//==================== Distance Test ====================
+    float d_proj = length(camDir - dot(camDir, up) * up);
+    uint value = uint(ceil(max((1.0f - d_proj / DMAX), 0.0f) * CULLLEVEL));       
+    bool distTest = mod(index, uint(CULLLEVEL)) < value;  
+    // true -> keep
+
+	
+
+	//======================= Culling =======================
+	if(orienTest && viewfTest && distTest) {
+		culledBlades[atomicAdd(numBlades.vertexCount , 1)] = blades[index];
+	}
+	
+	//culledBlades[index] = blades[index];
 }
