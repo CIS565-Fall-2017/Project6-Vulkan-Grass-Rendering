@@ -9,5 +9,7 @@ layout(location = 1) in vec2 fragTexCoord;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    outColor = texture(texSampler, fragTexCoord);
+	//Yellow Tint
+	vec4 TintColor = vec4(0.7,0.7,0.3,1.0);
+    outColor = texture(texSampler, fragTexCoord) * TintColor;
 }
