@@ -62,6 +62,8 @@ over the exact math here, but use the paper as a reference when implementing thi
 
 Once you have a wind direction and a wind alignment term, your total wind force (`w`) will be `windDirection * windAlignment`.
 
+In order to make everything looks good, a time related force is added to this part.
+
 #### Orientation culling
 
 Consider the scenario in which the front face direction of the grass blade is perpendicular to the view vector. Since our grass blades
