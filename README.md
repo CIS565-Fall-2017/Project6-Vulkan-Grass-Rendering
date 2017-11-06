@@ -28,14 +28,13 @@ Task Done:
 * Overall Result overview
 
 ![](https://github.com/XinCastle/Project6-Vulkan-Grass-Rendering/blob/master/img/grass%20blade%20sim.gif)
-
-* 2^20 grass blades.
+*2^20 grass blades.
 
 * Distance Culling Result
 
 ![](https://github.com/XinCastle/Project6-Vulkan-Grass-Rendering/blob/master/img/distance%20cull.gif)
-* 2^15 blades in the scene.
-* far plane set to be 5 to make it obvious
+*2^15 blades in the scene.
+*far plane set to be 5 to make it obvious
 
 * Frustum Culling Result
 
@@ -46,8 +45,8 @@ Task Done:
 .
 **Implementation**
 * External Forces
-Reference: Responsive Real-Time Grass Rendering for General 3D Scenes
-site: https://www.cg.tuwien.ac.at/research/publications/2017/JAHRMANN-2017-RRTG/JAHRMANN-2017-RRTG-draft.pdf
+* Reference: Responsive Real-Time Grass Rendering for General 3D Scenes
+* site: https://www.cg.tuwien.ac.at/research/publications/2017/JAHRMANN-2017-RRTG/JAHRMANN-2017-RRTG-draft.pdf
 
 
 .
