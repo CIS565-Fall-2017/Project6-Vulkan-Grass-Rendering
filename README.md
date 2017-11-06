@@ -26,15 +26,17 @@ Task Done:
 **Result GIF**
 
 * Overall Result overview
+(2^20 grass blades.)
 
 ![](https://github.com/XinCastle/Project6-Vulkan-Grass-Rendering/blob/master/img/grass%20blade%20sim.gif)
-*2^20 grass blades.
+
 
 * Distance Culling Result
+(2^15 blades in the scene.)
+(far plane set to be 5 to make it obvious)
 
 ![](https://github.com/XinCastle/Project6-Vulkan-Grass-Rendering/blob/master/img/distance%20cull.gif)
-*2^15 blades in the scene.
-*far plane set to be 5 to make it obvious
+
 
 * Frustum Culling Result
 
