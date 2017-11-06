@@ -95,7 +95,7 @@ void main() {
 
   float L0 = distance(v0, v2);
   float L1 = distance(v0, v1) + distance(v1, v2);
-  float n = 2.0; // degree of curve is 2..??
+  float n = 2.0;
   float L = (2.0 * L0 + (n - 1.0) * L1) / (n + 1.0);
   float r = height / L;
   vec3 v1old = v1;
@@ -107,7 +107,6 @@ void main() {
   blade.v2.xyz = v2;
   inBlades[index] = blade;
 
-  //outBlades[atomicAdd(numBlades.vertexCount, 1)] = inBlades[index];
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
@@ -115,7 +114,7 @@ void main() {
   
   // orientation culling // cull blades closer to 0.0 and keep the ones closer to 1.0
   vec4 forward = normalize(inverse(camera.proj * camera.view) * vec4(0.0, 0.0, 1.0, 0.0));
-  bool cullOrientation = abs(dot(normalize(vec3(forward.x, 0.0, forward.z)), normalize(vec3(f.x, 0.0, f.z)))) < 0.1;// - 0.1 * abs(sin(totalTime / 2.0));
+  bool cullOrientation = abs(dot(normalize(vec3(forward.x, 0.0, forward.z)), normalize(vec3(f.x, 0.0, f.z)))) < 0.1;
   
   // view-frustum culling
   vec4 v0Trans = camera.proj * camera.view * vec4(v0, 1.0);
