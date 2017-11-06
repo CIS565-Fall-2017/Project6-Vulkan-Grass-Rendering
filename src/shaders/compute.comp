@@ -56,7 +56,60 @@ void main() {
 	barrier(); // Wait till all threads reach this point
 
 	Blade blade = inBlades[gl_GlobalInvocationID.x];
+
+	vec3 forward = vec3(cos(blade.v0.w), 0.0, sin(blade.v0.w));
+	//totalTime += deltaTime;
+
+	// -- apply forces --
+
+	vec3 force;
+
+	// gravity
+
+	vec3 gravity = 9.8 * -blade.up.xyz;
+	// 'forward gravity'
+	gravity += 2.45 * forward;
+
+	//gravity = vec3(0);
+
+	// spring force
+
+	vec3 spring = blade.up.w * (blade.v0.xyz + blade.v1.w * blade.up.xyz - blade.v2.xyz);
+	//spring = vec3(0);
+
+	//wind force
+
+	vec3 wind = 5.0 * (sin(0.4 * totalTime + blade.v0.x + 1.3 * blade.v0.y) + 0.2 * cos(0.6 * totalTime)) * normalize(vec3(1, 0, 1));
+
+	vec3 displacement = deltaTime * (wind + spring + gravity);
+
+	vec3 newV2 = blade.v2.xyz + displacement;
+
+	// -- apply corrections --
+	
+	newV2 = newV2 - blade.up.xyz * min(blade.up.xyz * (newV2 - blade.v0.xyz), 0.0);
+
+	float lproj = length(newV2 - blade.v0.xyz - blade.up.xyz * dot(blade.up.xyz, (newV2 - blade.v0.xyz)));
+
+	vec3 newV1 = blade.v0.xyz + blade.v1.w * blade.up.xyz * max( 1.0 - (lproj / blade.v1.w) , 0.05 * max(1.0, lproj / blade.v1.w));
+	
+	float bezL0 = distance(newV2, blade.v0.xyz);
+	float bezL1 = distance(newV2, blade.v1.xyz) + distance(blade.v1.xyz, blade.v0.xyz);
+	float bezL = (2.0 * bezL0 + bezL1) / 3.0;
+
+	float ratioCorrect = blade.v1.w / bezL;
+	vec3 v1corr = blade.v0.xyz + ratioCorrect * (newV1 - blade.v0.xyz);
+	newV2 = v1corr + ratioCorrect * (newV2 - newV1);
+	
+	blade.v1.xyz = v1corr;//newV1;
+	blade.v2.xyz = newV2;
+	
+	//blade.v2.xyz = newV2;
 	outBlades[gl_GlobalInvocationID.x] = blade;
+	inBlades[gl_GlobalInvocationID.x] = blade;
+	
+	// -- cull blades --
+
 	atomicAdd(numBlades.vertexCount, 1);
 
     // TODO: Apply forces on every blade and update the vertices in the buffer

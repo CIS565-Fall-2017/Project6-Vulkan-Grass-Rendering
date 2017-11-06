@@ -17,7 +17,7 @@ void main() {
 	
 	vec3 N = normalize(f_nor);
 	N = faceforward(N, normalize(-f_pos), -N);
-	vec3 lightDir = (camera.view * vec4(1.0, 0.0, 0.0, 0.0)).xyz;
+	vec3 lightDir = (camera.view * vec4(normalize(vec3(-1)), 0.0)).xyz;
 	//vec3 lightDir = normalize(f_pos - (camera.view * vec4(0.0, 5.0, 0.0, 1.0)).xyz);
 	vec3 H = normalize(normalize(-f_pos) - lightDir); // view space
 	vec3 specColor = vec3(0.2);
