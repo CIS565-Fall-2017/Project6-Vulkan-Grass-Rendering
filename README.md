@@ -128,7 +128,7 @@ Most of the realization is very routine, although Vulkan is extremely hard to us
 
 | **Comparison Between different Culling** | 
 |---|
-|<img src="./results/form.JPG" width="800" height="150">|
+|<img src="./results/form.JPG" width="800" height="180">|
 
 | **Comparison Between different Culling(FPS)** | 
 |---|
