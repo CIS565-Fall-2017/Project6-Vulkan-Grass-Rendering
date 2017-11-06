@@ -59,7 +59,7 @@ If the control points v0 and v2 and the midpoint of the bezier curve are all in 
 
 If the grass is too far, it gets culled. The case below represents a simple distance test.
 
-![](img/Grass1.gif)
+![](img/GrassZoom.gif)
 
 
 ### Tessellating Bezier curves into grass blades
@@ -69,4 +69,6 @@ Using a tesselation shader, each bezier curve is transformed into a triangular b
 
 ### Performance Analysis
 
-More in-depth analysis is on the way. In the meantime, a lot of grass was culled.
+![](img/chart.png)
+
+In order to test the effects of culling, I measured the frame rate for each type of culling separately, as well as all the types of culling together and compared it to no culling. For distance culling, I measured it a distance away from the scene in which half the blades were not drawn. View frustum culling did not help the frame rate too much because the view of the camera I chose for the scene did not exclude too many blades. It also seems like orientation culling was a much better stand-alone optimization.
