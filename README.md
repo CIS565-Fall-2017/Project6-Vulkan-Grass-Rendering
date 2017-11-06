@@ -11,7 +11,7 @@ University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 6
  - Orientation Culling, View Frustum Culling, Distance Culling
 
 #### Summary
-In this project, you will use Vulkan to implement a grass simulator and renderer. You will use compute shaders to perform physics calculations on Bezier curves that represent individual grass blades in your application. Since rendering every grass blade on every frame will is fairly inefficient, you will also use compute shaders to cull grass blades that don't contribute to a given frame. The remaining blades will be passed to a graphics pipeline, in which you will write several shaders. You will write a vertex shader to transform Bezier control points, tessellation shaders to dynamically create the grass geometry from the Bezier curves, and a fragment shader to shade the grass blades.
+In this project, I use Vulkan to implement a grass simulator and renderer. I use compute shaders to perform physics calculations on Bezier curves that represent individual grass blades in my application. Since rendering every grass blade on every frame will is fairly inefficient, I also use compute shaders to cull grass blades that don't contribute to a given frame. The remaining blades will be passed to a graphics pipeline, in which I write several shaders. I write a vertex shader to transform Bezier control points, tessellation shaders to dynamically create the grass geometry from the Bezier curves, and a fragment shader to shade the grass blades.
 
 
 ## Demo
