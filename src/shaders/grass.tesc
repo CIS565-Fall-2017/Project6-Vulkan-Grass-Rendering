@@ -31,12 +31,19 @@ void main() {
   outUp = inUp[gl_InvocationID];
 
   // TODO: depth based tesselation..
+  vec4 forward = normalize(inverse(camera.proj * camera.view) * vec4(0.0, 0.0, 1.0, 0.0));
+  vec4 oPos = (camera.proj * camera.view * originPos);
+  oPos /= oPos.w;
+  int d = int(40.0 - 40.0 * pow(oPos.z, 4.0));
+  int h = min(d + 2, 4);
+  int v = min(d + 4, 10);
 
 	// TODO: Set level of tesselation
-  gl_TessLevelInner[0] = 2; // horizontal
-  gl_TessLevelInner[1] = 4; // vertical
-  gl_TessLevelOuter[0] = 4; // edge 0-3
-  gl_TessLevelOuter[1] = 2; // edge 3-2
-  gl_TessLevelOuter[2] = 4; // edge 2-1
-  gl_TessLevelOuter[3] = 2; // edge 1-0
+  gl_TessLevelInner[0] = h; // 2; // horizontal
+  gl_TessLevelInner[1] = v; // 4; // vertical
+
+  gl_TessLevelOuter[0] = v; // 4; // edge 0-3
+  gl_TessLevelOuter[1] = h; // 2; // edge 3-2
+  gl_TessLevelOuter[2] = v; // 4; // edge 2-1
+  gl_TessLevelOuter[3] = h; // 2; // edge 1-0
 }

@@ -29,8 +29,6 @@ void main() {
   vec3 b = mix(inV1.xyz, inV2.xyz, v);
   vec3 c = mix(a, b, v);
 
-  //vec3 faceDir = normalize(cross(up.xyz, vec3(sin(v0.w), 0, cos(v0.w)));
-  //vec3 biTan = normalize(cross(faceDir, up.xyz));
   vec3 tangent = normalize(b - a);
   vec3 biTangent = vec3(sin(inV0.w), 0.0, cos(inV0.w));
   float w = inV2.w;

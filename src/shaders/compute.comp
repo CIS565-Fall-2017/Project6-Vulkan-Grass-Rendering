@@ -76,8 +76,8 @@ void main() {
 
   // wind
   vec3 windDir = vec3(1.0, 0.0, 1.0);
-  float windComp = 2.0 * sin(totalTime * 2.5 + dot(windDir + vec3(0.0, 0.0, -1.0), v0))
-                 + 3.0 * sin(totalTime * 2.5 + dot(windDir + vec3(1.0, 0.0, 0.0), v0));
+  float windComp = 2.0 * 2.0 * sin(totalTime * 5.0 + 0.3 * dot(windDir + vec3(0.0, 0.0, -1.0), v0))
+                 + 2.0 * 3.0 * sin(totalTime * 5.0 + 0.3 * dot(windDir + vec3(1.0, 0.0, 1.0), v0));
 
   float fd = 1.0 - abs(dot(normalize(windDir), normalize(v2 - v0)));
   float fr = dot(v2 - v0, up) / height;
@@ -137,21 +137,13 @@ void main() {
   // distance culling
   // Because the blades are uniformly distributed, we can just delete the first few blades
   // among the blades in a level, without forming gaps..
-  float dProj = length((camera.view * vec4(v0, 1.0)).xyz - forward.xyz - up * dot(((camera.view * vec4(v0, 1.0)).xyz - forward.xyz), up));
-  float dMax = 40.0;
-  // float num = 20.0;
-  // float indMin = floor(num * (1.0 - dProj / dMax));
-  // float delPer = 1.0 - 1.0 / pow(2.718, dProj / dMax /*num - indMin*/);// 1.0 - indMin / num;
-  bool cullDistance = index < float(1 << 20) * dProj / dMax; // (pow(2.0, 1.0 + min(dProj / dMax, dMax)) - 2.0); /*|| indMin < 0.0*/ // && (index < (indMax / dMax * num))) || indMin < 0.0;// abs(sin(totalTime / 2.0));// > 0.9;
+  vec4 oPos = (camera.proj * camera.view * vec4(v0, 1.0));
+  oPos /= oPos.w;
+  float d = (40.0 - 40.0 * pow(oPos.z, 4.0));
+  bool cullDistance = index < float(1 << 16) / d * 0.1;
 
   // cull
-  /*if (!cullOrientation && !cullViewFrust && !cullDistance) {
+  if (!cullOrientation && !cullViewFrust && !cullDistance) {
     outBlades[atomicAdd(numBlades.vertexCount, 1)] = inBlades[index];
   }
-  else {
-    inBlades[index].v0.y = -3;
-    inBlades[index].v1.y = -2;
-    inBlades[index].v2.y = -1;
-    outBlades[atomicAdd(numBlades.vertexCount, 1)] = inBlades[index];
-  }*/
 }
