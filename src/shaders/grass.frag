@@ -14,10 +14,16 @@ layout(location = 2) in vec4 fs_color;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    // TODO: Compute fragment color
-	// TODO: lambert
-	const vec3 lightDir = vec3(0.577350269, -0.577350269, -0.577350269);
-	float lambert = clamp(dot(fs_normal, lightDir), 0.5, 1.0);
-	vec3 color = vec3(0.1, 0.9, 0.2) * lambert;
-    outColor = fs_color;//vec4(color, 1.0);
+	if (fs_color.w > 0.0) {
+		// use custom color in fs_color
+		outColor = vec4(fs_color.xyz, 1.0);
+	}
+	else {
+		// use green + lambert shading
+		const vec3 lightDir = vec3(0.577350269, -0.577350269, -0.577350269);
+		float lambert = max(dot(fs_normal, lightDir), dot(-fs_normal, lightDir));
+		lambert = clamp(lambert, 0.25, 1.0);
+		vec3 color = vec3(0.1, 0.9, 0.2) * lambert;
+		outColor = vec4(color, 1.0);
+	}
 }
