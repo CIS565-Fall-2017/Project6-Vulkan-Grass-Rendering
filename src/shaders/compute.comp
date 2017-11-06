@@ -36,21 +36,144 @@ struct Blade {
 // 	  uint firstInstance; // = 0
 // } numBlades;
 
+//input
+layout(set = 2, binding = 0) buffer Blades {
+ 	 Blade blades[];
+};
+
+//output
+layout(set = 2, binding = 1) buffer CulledBlades {
+ 	Blade culledBlades[];
+};
+
+
+layout(set = 2, binding = 2) buffer NumBlades {
+ 	  uint vertexCount;   // Write the number of blades remaining here
+ 	  uint instanceCount; // = 1
+ 	  uint firstVertex;   // = 0
+ 	  uint firstInstance; // = 0
+} numBlades;
+
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
+}
+
+vec3 interPos(vec3 v0, vec3 v1, vec3 v2, float v)
+{
+	vec3 a = v0 + v*(v1 -  v0);
+	vec3 b = v1 + v*(v2 - v1);
+	return a + v*(b - a);
 }
 
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
+		numBlades.vertexCount = 0;
 	}
 	barrier(); // Wait till all threads reach this point
 
     // TODO: Apply forces on every blade and update the vertices in the buffer
+	uint idx = gl_GlobalInvocationID.x;
+	Blade blade = blades[idx];
+
+	vec3 v0 = blade.v0.xyz;
+	vec3 v1 = blade.v1.xyz;
+	vec3 v2 = blade.v2.xyz;
+	vec3 up = blade.up.xyz;
+
+	float direction = blade.v0.w;
+	float height = blade.v1.w;
+	float width = blade.v2.w;
+	float stiff_coeff = blade.up.w;
+
+	vec3 surface_tan = vec3(sin(direction), 0.0f, cos(direction));
+	vec3 surface_norm = normalize(cross(up, surface_tan));
+
+	// Recovery
+	vec3 Iv2 = v0 + up * height;
+	vec3 f_recover = (Iv2 - v2) * stiff_coeff;
+
+	// Gravity
+	vec3 gE = vec3(0.0f, -9.8, 0.0f);
+	vec3 gF = 0.25 * length(gE) * surface_norm;
+	vec3 f_gravity = gE + gF;
+
+	//Wind
+	vec3 wind_direction = vec3(1.0f, 0.0f, 0.0f);
+	float wind_strength = 5 * cos(totalTime);
+
+	float fd = 1 - abs(dot(normalize(wind_direction), normalize(v2 - v0)));
+	float fr = dot(v2 - v0, up) / height;
+	float thetaa = fd * fr;
+	vec3 f_wind = wind_strength * thetaa * wind_direction;	
+
+	//Total force	
+	v2 += deltaTime * (f_wind + f_gravity + f_recover);
+	
+	// State validation
+	v2 -= up * min(0.0f, dot(up, v2 - v0));
+
+	float l_proj = length(v2 - v0 - up * dot(v2 - v0, up));
+
+	v1 = v0 + height * up * max(1 - l_proj / height, 0.05 * max(l_proj / height, 1.0f));
+
+	float L0 = distance(v2, v0);
+	float L1 = distance(v2, v1) + distance(v1, v0);
+	float n = 2.5; //Bezier curve degree
+	float L = (2 * L0 + (n - 1) * L1) / (n + 1);
+
+	float r = height / L;
+	vec3 v1_corr = v0 + r * (v1 - v0);
+	vec3 v2_corr = v1_corr + r * (v2 - v1);
+
+	blades[idx].v1.xyz = v1_corr;
+	blades[idx].v2.xyz = v2_corr;
+
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
+	v0 = blade.v0.xyz;
+	v1 = blade.v1.xyz;
+	v2 = blade.v2.xyz;
+
+	// Orientation cull
+	mat4 invViewMat = inverse(camera.view);
+	vec3 viewWorldSpace = (invViewMat * vec4(0,0,1,0)).xyz;
+
+	bool culled_orientation = abs(dot(surface_norm, normalize(vec3(viewWorldSpace.x, 0.0f, viewWorldSpace.z)))) < 0.1;
+
+	// View frustum test
+	vec3 m_center_point = 0.25 * v0 + 0.5 * v1 + 0.25 * v2;
+	float tolerance = 2.0f;
+
+	vec4 v0_p = camera.proj * camera.view * vec4(v0, 1.0);
+	vec4 v2_p = camera.proj * camera.view * vec4(v2, 1.0);
+	vec4 m_p = camera.proj * camera.view * vec4(m_center_point, 1.0); 
+	float v0_h = v0_p.w + tolerance;
+	float v2_h = v2_p.w + tolerance;
+	float m_h = m_p.w + tolerance;
+
+	bool res_v0 = inBounds(v0_p.x, v0_h) && inBounds(v0_p.y, v0_h) && inBounds(v0_p.z, v0_h);
+	bool res_v2 = inBounds(v2_p.x, v2_h) && inBounds(v2_p.y, v2_h) && inBounds(v2_p.z, v2_h);
+	bool res_m = inBounds(m_p.x, m_h) && inBounds(m_p.y, m_h) && inBounds(m_p.z, m_h);
+
+	bool culled_frustum = !(res_v0 && res_v2 && res_m);
+
+	// Distance test
+	vec3 camera_pos = (invViewMat * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+	float d_proj = length(v0 - camera_pos - up * dot(up, (v0 - camera_pos)) );
+	float dmax = 20.0;
+	int num = 10;
+
+	bool culled_distance = mod(idx, num) > floor(num * (1.0 - d_proj / dmax) );
+
+	if(!(culled_orientation || culled_frustum || culled_distance))	
+	//if (!culled_orientation)
+	//if (!culled_frustum)
+	//if (!culled_distance)
+	{
+		culledBlades[atomicAdd(numBlades.vertexCount , 1)] = blade;
+	}	
 }
