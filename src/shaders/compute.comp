@@ -79,7 +79,10 @@ void main() {
 
 	//wind force
 
-	vec3 wind = 5.0 * (sin(0.4 * totalTime + blade.v0.x + 1.3 * blade.v0.y) + 0.2 * cos(0.6 * totalTime)) * normalize(vec3(1, 0, 1));
+	vec3 wind = 2.5 * (1.0 + sin(0.4 * totalTime + 0.06 * blade.v0.x + 0.05 * blade.v0.z) + 
+	0.3 * cos(1.7 * totalTime + 0.4 * blade.v0.x) + 
+	0.1 * sin(3.0 * totalTime + 0.5 * blade.v0.z)) 
+	* normalize(vec3(-1, 0, -1));
 
 	vec3 displacement = deltaTime * (wind + spring + gravity);
 
