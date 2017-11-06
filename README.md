@@ -96,7 +96,7 @@ Performance Analysis
 
 ![](img/chart1.png)
 
-The time is measured using the average time for computation included (Still computation whether should we use culling) and computation not included(Codes related commented.).
+The time is measured using the average time for computation included (Still compute whether should we cull the blades) and computation not included(Codes related commented.).
 
 Running time for each culling does not influence too much on the running time, but a clear optimization still works. Frustrum culling has the best effect,
 Orientation culling follows and distance culling has the worst effect. Considering the actual range of simulation, the distance culling will not work very well on
