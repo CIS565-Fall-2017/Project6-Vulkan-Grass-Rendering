@@ -25,13 +25,15 @@ void main() {
 	vec4 p0 =  gl_in[gl_InvocationID].gl_Position; // original position of the patch
     gl_out[gl_InvocationID].gl_Position = p0;
 	
+	vec4 p1 = c_v1[gl_InvocationID];
 	vec4 p2 = c_v2[gl_InvocationID];
 
-	e_v1[gl_InvocationID] = c_v1[gl_InvocationID];
+	e_v1[gl_InvocationID] = p1;
 	e_v2[gl_InvocationID] = p2;
-	vec4 e_o = p2 - p0;
-	e_o.xyz = normalize(vec3(-e_o.y, 0, e_o.x));
-	e_o.w = p2.w;
+	vec4 e_o = vec4(0);
+	e_o.xyz = vec3(cos(p1.w + 1.5708), 0, sin(p1.w + 1.5708)); // 90 deg from orientation
+
+	e_o.w = p2.w; // width
 	e_orthogonal[gl_InvocationID] = e_o;
 	
 	// TODO: depth dependent using p0

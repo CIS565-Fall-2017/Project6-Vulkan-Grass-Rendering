@@ -21,8 +21,8 @@ out gl_PerVertex {
 };
 
 void main() {
-	// TODO: Write gl_Position and any other shader outputs
 	c_v1 = v_v1;
+	c_v1.w = v_v0.w; // angle
 	c_v2 = v_v2;
 	gl_Position = vec4(v_v0.xyz, 1.0);
 }

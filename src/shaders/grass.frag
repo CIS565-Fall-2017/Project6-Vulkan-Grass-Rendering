@@ -14,8 +14,9 @@ layout(location = 0) out vec4 outColor;
 
 void main() {
     // simple blinn shading
+	
 	vec3 N = normalize(f_nor);
-	vec3 lightDir = normalize(vec3(-1.0));
+	vec3 lightDir = (camera.view * vec4(normalize(vec3(-1.0)), 0.0)).xyz;
 	vec3 H = normalize(normalize(-f_pos) - lightDir); // view space
 	vec3 specColor = vec3(0.2);
 	vec3 diffColor = vec3(0.5, 0.8, 0.4);
@@ -23,5 +24,8 @@ void main() {
 	specColor *= pow(max(0.0, dot(N, H)), 32.0);
 
     outColor = vec4(specColor + diffColor, 1.0);
-	outColor.xyz = pow(outColor.xyz, vec3(0.4545));
+	//outColor.xyz = pow(outColor.xyz, vec3(0.4545));
+	//outColor.xyz = abs(f_nor);
+
+	//outColor = vec4(0.5, 0.7, 0.5, 1.0);
 }

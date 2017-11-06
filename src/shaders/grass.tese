@@ -20,13 +20,15 @@ void main() {
     float u = gl_TessCoord.x;
     float v = gl_TessCoord.y;
 
-	vec3 p0 = gl_Position.xyz;
+	vec3 p0 = gl_in[0].gl_Position.xyz;
 	vec3 p1 = e_v1[0].xyz; // 0?
 	vec3 p2 = e_v2[0].xyz;
 	vec4 e_o = e_orthogonal[0];
 
 	// bezier curve location
-	vec3 pBezier = mix(mix(p0, p1, v), mix(p1, p2, v), v);
+	vec3 a = p0 + v * (p1 - p0);
+	vec3 b = p1 + v * (p2 - p1);
+	vec3 pBezier = a + v * (b - a);
 
 	// triangular width offset
 	// full at base, none at top, direction dependent on offset from center
@@ -35,12 +37,12 @@ void main() {
 	f_pos = (camera.view * vec4(pBezier + pOrtho, 1.0)).xyz;
 
 	// normals
-	vec3 bezTangent = (-2.0  + 2.0 * v) * p0 +
-	    (2.0 - 4.0 * v) * p1 +
-		(2.0 * v) * p2;
+	vec3 bezTangent = normalize(b - a);
 
-	f_nor = (camera.view * vec4(normalize(cross(e_o.xyz, bezTangent)), 0.0)).xyz;
+	f_nor = (camera.view * vec4(normalize(cross(normalize(bezTangent), e_o.xyz)), 0.0)).xyz;
 
 	// clip space position
-	gl_Position = camera.proj * camera.view * vec4(f_pos, 1.0); 
+	gl_Position = camera.proj * vec4(f_pos, 1.0); 
+
+	//gl_Position = camera.proj * camera.view * (gl_in[0].gl_Position + vec4(1.0 - u, v, 0.0, 0.0));
 }
