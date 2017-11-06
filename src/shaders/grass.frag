@@ -8,9 +8,26 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 
 // TODO: Declare fragment shader inputs
 
+layout(location = 0) in vec4 inPos;
+layout(location = 1) in vec4 inNor;
+
 layout(location = 0) out vec4 outColor;
 
 void main() {
     // TODO: Compute fragment color
-    outColor = vec4(0.0, 1.0, 0.0, 1.0);
+
+	vec3 green1 = vec3(0.0, 0.36, 0.035);
+	vec3 green2 = vec3(0.0039, 0.65, 0.067);
+
+	float t = inNor.w;
+	vec3 albedo = (1 - t) * green2 + t * green1; 
+
+	vec3 lightPos = vec3(5.0, 20.0, 0.0);
+	vec3 lightDir = (lightPos - inPos.xyz) / distance(lightPos, inPos.xyz);
+
+	float lambert = max(dot(inNor.xyz, lightDir), 0.0);
+	float lightIntensity = 3.0f;
+
+	vec3 col = lambert * lightIntensity * albedo;
+    outColor = vec4(col, 1.0);
 }

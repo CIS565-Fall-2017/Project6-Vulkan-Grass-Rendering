@@ -15,6 +15,9 @@ layout(location = 1) in vec4 inV1[];
 layout(location = 2) in vec4 inV2[];
 layout(location = 3) in vec4 inUp[];
 
+layout(location = 0) out vec4 outPos[];
+layout(location = 1) out vec4 outNor[];
+
 void main() {
     float u = gl_TessCoord.x;
     float v = gl_TessCoord.y;
@@ -45,6 +48,9 @@ void main() {
 	
 	// Interpolate position
 	vec3 p = (1 - t) * c0 + (t * c1);
+
+	outPos[0] = vec4(p, 1.0);
+	outNor[0] = vec4(n, t);
 
 	gl_Position = camera.proj * camera.view * vec4(p, 1.0);
 }
