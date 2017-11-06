@@ -14,6 +14,7 @@ layout (location = 0) in vec4[] v1Array;
 layout (location = 1) in vec4[] v2Array;
 
 layout (location = 0) out vec3 fs_nor;
+layout (location = 1) out vec3 fs_posVC;
 
 void main() {
     float u = gl_TessCoord.x;
@@ -32,16 +33,18 @@ void main() {
     vec3 c = a + v * (b - a);
 
     // Account for the rotation of this blade of grass
-    vec3 bit = normalize(vec3(cos(v1.w), 0, sin(v1.w))); // in the xz-plane
+    vec3 bit = normalize(vec3(cos(v1.w + 1.57079632679), 0, sin(v1.w + 1.57079632679))); // in the xz-plane
 
     vec3 tan = b - a;
     vec3 normal = normalize(cross(tan, bit));
 
-    fs_nor = normal;
+    fs_nor = (camera.view * vec4(normal, 0)).xyz;
     
     u *= 1.0 - v;
     u = 2.0 * u - 1.0;
     vec3 offset = u * width * bit;
 
-    gl_Position = camera.proj * camera.view * (vec4(c.x, c.yz, 1.0) + vec4(offset, 0.0));
+    vec4 pos = vec4(c.x, c.yz, 1.0) + vec4(offset, 0.0);
+    fs_posVC = (camera.view * pos).xyz;
+    gl_Position = camera.proj * camera.view * pos;
 }
