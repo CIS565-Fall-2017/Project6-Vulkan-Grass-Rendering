@@ -21,6 +21,7 @@ struct Blade {
     vec4 up;
 };
 
+
 // TODO: Add bindings to:
 // 1. Store the input blades
 // 2. Write out the culled blades
@@ -28,29 +29,139 @@ struct Blade {
 
 // The project is using vkCmdDrawIndirect to use a buffer as the arguments for a draw call
 // This is sort of an advanced feature so we've showed you what this buffer should look like
-//
-// layout(set = ???, binding = ???) buffer NumBlades {
-// 	  uint vertexCount;   // Write the number of blades remaining here
-// 	  uint instanceCount; // = 1
-// 	  uint firstVertex;   // = 0
-// 	  uint firstInstance; // = 0
-// } numBlades;
+
+layout(set = 2, binding = 2) buffer NumBlades {
+ 	  uint vertexCount;   // Write the number of blades remaining here
+ 	  uint instanceCount; // = 1
+ 	  uint firstVertex;   // = 0
+ 	  uint firstInstance; // = 0
+} numBlades;
+
+//input
+layout(set = 2, binding = 0) buffer Blades {
+ 	 Blade blades[];
+};
+
+//output
+layout(set = 2, binding = 1) buffer CulledBlades {
+ 	Blade culledBlades[];
+};
 
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
 }
 
-void main() {
-	// Reset the number of blades to 0
-	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
-	}
-	barrier(); // Wait till all threads reach this point
-
-    // TODO: Apply forces on every blade and update the vertices in the buffer
-
-	// TODO: Cull blades that are too far away or not in the camera frustum and write them
-	// to the culled blades buffer
-	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
-	// You want to write the visible blades to the buffer without write conflicts between threads
+bool inBound(float value, float a, float b) {
+    return (value >= a) && (value <= b);
 }
+
+vec3 fp(vec3 p0, vec3 p1, vec3 p2, float v)
+{
+	return p0 + v*(p1 -  p0) + v*(p1 + v*(p2 - p1) - p0 + v*(p1 -  p0));
+}
+
+
+void main() {
+	if (gl_GlobalInvocationID.x == 0) {
+		numBlades.vertexCount = 0;
+	}
+	barrier();
+
+	uint idx = gl_GlobalInvocationID.x;
+	
+	Blade b = blades[idx];
+	vec3 up = b.up.xyz;
+	vec3 p0 = b.v0.xyz; vec3 p1 = b.v1.xyz; vec3 p2 = b.v2.xyz;
+	vec3 face = normalize(cross(up, vec3(sin(b.v0.w), 0, cos(b.v0.w))));
+
+	
+	vec3 g = vec3(0, -9.81, 0);
+	vec3 gravityForce = face * 0.25 * g + g;
+
+	float h = b.v1.w;
+	vec3 iv2 = p0 + up * h;
+	float maxc = 1.8/ min(h, 1.8);
+	vec3 recoveryForce = (iv2 - p2) * b.up.w * maxc;
+
+
+	vec3 windDirection = normalize(vec3(0.5, 0, 0.5));
+	//vec3 windDirection = -normalize(p0.xyz);
+	float m = dot(windDirection, vec3(p0.x, 0.0, p0.z));
+	float t =  totalTime*3.0;
+	float s = cos((m + t) / 6.0);
+	float dirAlign = 1.0 -  abs(dot(windDirection ,normalize(p2 - p0)));
+	vec3 windForce = windDirection * dirAlign * dot(up, p2 - p0) * s * 4.0 / h;
+	
+
+	vec3 TotalForce = gravityForce + recoveryForce + windForce;
+	vec3 dF = TotalForce * deltaTime;
+	vec3 v2 = p2 + dF - min(dot(up, p2 + dF - p0), 0.0) * up;
+	float lproj_h = length(v2 - p0 - up * dot(v2 - p0, up)) / h;
+	vec3 v1 = h * up * max(1.0 - lproj_h , max(lproj_h,  1.0) / 20.0) + p0;
+
+	
+	float _n = 3;
+	float L0 = length(v2 - p0);
+	float L1 = length(v1 - p0) + length(v2 - v1);
+	float L  = (L0 * 2.0 + (_n - 1.0) * L1) / (1.0 + _n);
+	float r = h / L;
+    b.v1.xyz = p0 + r*(v1 - p0);
+	b.v2.xyz = b.v1.xyz + r*(v2 - v1);
+    blades[idx] = b;
+
+
+	// Culling
+	mat4 invView = inverse(camera.view);
+	mat4 viewProj = camera.proj * camera.view;
+	vec3 viewVectorWorld = (invView * vec4(0,0,1,0)).xyz;
+	p0 = b.v0.xyz; p1 = b.v1.xyz; p2 = b.v2.xyz;
+
+
+	vec4 projPosV0= viewProj * vec4(p0, 1.0);
+	vec4 projPosV2= viewProj * vec4(p2, 1.0);
+	projPosV0 /= projPosV0.w;
+	projPosV2 /= projPosV2.w;
+
+	vec4 projCenter1 = viewProj * vec4(fp(p0, p1, p2, 0.25), 1.0);
+	vec4 projCenter3 = viewProj * vec4(fp(p0, p1, p2, 0.75), 1.0);
+	vec4 projCenter2 = viewProj * vec4(0.25*p0 * 0.5*p1 * 0.25*p2, 1.0);
+	projCenter1 /= projCenter1.w;
+	projCenter2 /= projCenter2.w;
+	projCenter3 /= projCenter3.w;
+
+	float clipVal = 1.3;
+	float near = 0.1;
+	float far = 100.0;
+
+	bool mV0x = inBounds(projPosV0.x, clipVal);
+	bool mV0y = inBounds(projPosV0.y, clipVal);
+	bool mV0z = inBound(projPosV0.z, 0.0, 1.0);
+	bool mV0  = mV0x && mV0y && mV0z;
+
+	bool mV2x = inBounds(projPosV2.x, clipVal);
+	bool mV2y = inBounds(projPosV2.y, clipVal);
+	bool mV2z = inBound(projPosV2.z, 0.0, 1.0);
+	bool mV2  = mV2x && mV2y && mV2z;
+
+	bool mP1x = inBounds(projCenter1.x, clipVal);
+	bool mP1y = inBounds(projCenter1.y, clipVal);
+	bool mP1z = inBound(projCenter1.z, 0.0, 1.0);
+	bool mP1  = mP1x && mP1y && mP1z;
+
+	bool mP2x = inBounds(projCenter2.x, clipVal);
+	bool mP2y = inBounds(projCenter2.y, clipVal);
+	bool mP2z = inBound(projCenter2.z, 0.0, 1.0);
+	bool mP2  = mP2x && mP2y && mP2z;
+
+	bool mP3x = inBounds(projCenter3.x, clipVal);
+	bool mP3y = inBounds(projCenter3.y, clipVal);
+	bool mP3z = inBound(projCenter3.z, 0.0, 1.0);
+	bool mP3  = mP3x && mP3y && mP3z;
+
+	bool culledByFrustum = !(mV0 && mV2 && mP1 && mP2 && mP3);
+	bool culledByOrientation = abs(dot(normalize(vec3(viewVectorWorld.x, 0.0, viewVectorWorld.z)), face)) < 0.11;
+	bool culledByDistance = ((2.0 * near) / (far + near - projPosV0.z * (far - near))) > 0.95;
+
+	if(!culledByOrientation && !culledByFrustum && !culledByDistance) culledBlades[atomicAdd(numBlades.vertexCount , 1)] = b;
+}
+ 
