@@ -18,15 +18,15 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 // TODO: Declare tessellation control shader inputs and outputs
 
 // Input from vert shader
-layout (location = 0) in vec4 v_v1[];
-layout (location = 1) in vec4 v_v2[];
-layout (location = 2) in vec4 v_up[];
+layout (location = 0) in vec4 v_v0[];
+layout (location = 1) in vec4 v_v1[];
+layout (location = 2) in vec4 v_v2[];
 
 // Output from tess. control to the tess. eval shader
 // Output as vertices or patches? -- > https://www.khronos.org/opengl/wiki/Tessellation_Control_Shader
-layout (location = 0) out vec4 tc_v1[];
-layout (location = 1) out vec4 tc_v2[];
-layout (location = 2) out vec4 tc_up[];
+layout (location = 0) out vec4 tc_v0[];
+layout (location = 1) out vec4 tc_v1[];
+layout (location = 2) out vec4 tc_v2[];
 
 
 /*
@@ -42,18 +42,19 @@ void main() {
 
 
 	// TODO: Write any shader outputs
-	tc_v1[gl_InvocationID] = v_v1[0];
-	tc_v2[gl_InvocationID] = v_v2[0];
-	tc_up[gl_InvocationID] = v_up[0];
+	tc_v0[gl_InvocationID] = v_v0[gl_InvocationID];
+	tc_v1[gl_InvocationID] = v_v1[gl_InvocationID];
+	tc_v2[gl_InvocationID] = v_v2[gl_InvocationID];
+
 
 	// TODO: Set level of tessellation
 	// Note: These are per-patch outputs, only need to be written once
 	// QUESTION: Why not put it in "if(gl_InvocationID == 0)"???
 	// Then you only write them from a single execution thread (http://prideout.net/blog/?p=48)
-    gl_TessLevelInner[0] = 1;
-    gl_TessLevelInner[1] = 2;
-    gl_TessLevelOuter[0] = 2;
-    gl_TessLevelOuter[1] = 2;
-    gl_TessLevelOuter[2] = 2;
-    gl_TessLevelOuter[3] = 2;
+    gl_TessLevelInner[0] = 1;	// Horizontal tessellation
+    gl_TessLevelInner[1] = 4;	// Vertical tessellation, make this the same
+    gl_TessLevelOuter[0] = 4;	// Vertical edge 0-3, make this the same
+    gl_TessLevelOuter[1] = 1;	// Horizontal edge 2-3
+    gl_TessLevelOuter[2] = 4;	// Vertical edge 1-2, make this the same
+    gl_TessLevelOuter[3] = 1;	// Horizontal edge 0-1
 }

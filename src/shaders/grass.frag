@@ -18,5 +18,11 @@ layout(location = 0) out vec4 outColor;
 void main() {
     // TODO: Compute fragment color
 
-    outColor = vec4(0.13, 0.56, 0.13, 1.0);
+	// Lambert
+	// vec3 lightPosition = vec3(0.0, 10.0, 0.0);
+	// float lambertTerm = clamp( dot( te_normal.xyz, normalize(lightPosition - te_position.xyz) ), 0.0, 1.0 );
+
+	vec4 ambientLight = vec4(0.75);
+	vec4 albedo = vec4(0.13, 0.56, 0.13, 1.0);
+    outColor = ambientLight * albedo;
 }
