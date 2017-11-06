@@ -13,11 +13,11 @@ Vulkan Grass Rendering
 # Features
 
 ## 1. Compute Shader
-* Perform physics calculations on Bezier curves that represent individual grass blades.
-    * Apply gravity, wind force, recovery force to each blade.
 <p align="center">
   <img src="img/blade_model.gif">
 </p>
+* Perform physics calculations on Bezier curves that represent individual grass blades.
+    * Apply gravity, wind force, recovery force to each blade.
 * Cull grass blades that don't contribute to a given frame.
     * Orientation culling
     * View-frustum culling
