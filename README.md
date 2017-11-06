@@ -54,7 +54,7 @@ Here I used it to do 2 things as following:
 
     float wave_info = (cos((dot(vec3(this_v0.x, 0, this_v0.z), wind_dir) - wind_speed * totalTime) / wave_division_width) + 0.7);
 
-//5.1 Wind
+    //5.1 Wind
     //directional alignment 
     float fd = 1 - abs(dot(wind_dir, normalize(this_v2 - this_v0)));
 
