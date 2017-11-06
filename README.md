@@ -1,4 +1,4 @@
-Instructions - Vulkan Grass Rendering
+Vulkan Grass Rendering
 ========================
 
 * Jiawei Wang
