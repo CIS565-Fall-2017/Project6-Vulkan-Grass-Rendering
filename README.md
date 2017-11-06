@@ -9,8 +9,8 @@ Vulkan Grass Rendering
 
 *A GPU-accelerated real time grass renderer implemented in Vulkan.*
 
-|![A rendered duck.](img/duck_full.PNG)|![Debug view.](img/duck_corrected.PNG)|
+|![Unculled grass in quad shape.](img/grass_unculled_quad.gif)|![Unculled grass in triangle shape.](img/grass_unculled_tri.gif)|
 |:-:|:-:|
-|An example of a rasterized model.|Debug view showing surface normals.|
+|Unculled grass in quad shape.|Unculled grass in triangle shape.|
 
 This implementation features a full Vulkan rendering pipeline for generating a field brimming with blades of grass whose motion is realistically simulated according to gravity, blade stiffness, and wind. The implementation is drawn from the paper [Responsive Real-Time Grass Rendering for General 3D Scenes](https://www.cg.tuwien.ac.at/research/publications/2017/JAHRMANN-2017-RRTG/JAHRMANN-2017-RRTG-draft.pdf).
