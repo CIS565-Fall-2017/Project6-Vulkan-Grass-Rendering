@@ -1,7 +1,7 @@
 Grass Rendering with Vulkan
 ===============
 
-![](img/wind-circle.gif)
+![](img/wind-circle-loop-short.gif)
 
 **University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 6**
 
