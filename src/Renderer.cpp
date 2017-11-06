@@ -251,6 +251,7 @@ void Renderer::CreateDescriptorPool() {
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , 1 },
 
         // TODO: Add any additional types and counts of descriptors you will need to allocate
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3}
     };
 
     VkDescriptorPoolCreateInfo poolInfo = {};
@@ -355,7 +356,7 @@ void Renderer::CreateModelDescriptorSets() {
 void Renderer::CreateGrassDescriptorSets() {
     // TODO: Create Descriptor sets for the grass.
     // This should involve creating descriptor sets which point to the model matrix of each group of grass blades
-	grassDescriptorSets.resize(scene->GetModels().size());
+	grassDescriptorSets.resize(scene->GetBlades().size());
 	VkDescriptorSetLayout layouts[] = { modelDescriptorSetLayout };
 	VkDescriptorSetAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -370,10 +371,10 @@ void Renderer::CreateGrassDescriptorSets() {
 
 	std::vector<VkWriteDescriptorSet> descriptorWrites(grassDescriptorSets.size());
 
-	for (uint32_t i = 0;i < scene->GetModels().size();++i)
+	for (uint32_t i = 0;i < scene->GetBlades().size();++i)
 	{
 		VkDescriptorBufferInfo grassInfo = {};
-		grassInfo.buffer = scene->GetModels()[i]->GetModelBuffer();
+		grassInfo.buffer = scene->GetBlades()[i]->GetModelBuffer();
 		grassInfo.offset = 0;
 		grassInfo.range = sizeof(ModelBufferObject);
 
@@ -432,6 +433,7 @@ void Renderer::CreateComputeDescriptorSets() {
 
 	VkDescriptorSetLayout layouts[] = { computeDescriptorSetLayout };
 	VkDescriptorSetAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = descriptorPool;
 	allocInfo.descriptorSetCount = static_cast<uint32_t>(computeDescriptorSets.size());
 	allocInfo.pSetLayouts = layouts;
@@ -447,12 +449,12 @@ void Renderer::CreateComputeDescriptorSets() {
 		VkDescriptorBufferInfo bladeBufferInfo = {};
 		bladeBufferInfo.buffer = scene->GetBlades()[i]->GetBladesBuffer();
 		bladeBufferInfo.offset = 0;
-		bladeBufferInfo.range = NUM_BLADES * sizeof(Blades);
+		bladeBufferInfo.range = NUM_BLADES * sizeof(Blade);
 
 		VkDescriptorBufferInfo cullBladeInfo = {};
 		cullBladeInfo.buffer = scene->GetBlades()[i]->GetCulledBladesBuffer();
 		cullBladeInfo.offset = 0;
-		cullBladeInfo.range = NUM_BLADES * sizeof(Blades);
+		cullBladeInfo.range = NUM_BLADES * sizeof(Blade);
 
 		VkDescriptorBufferInfo numbladeInfo = {};
 		numbladeInfo.buffer = scene->GetBlades()[i]->GetNumBladesBuffer();
