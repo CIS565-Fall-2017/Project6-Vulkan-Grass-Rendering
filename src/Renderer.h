@@ -58,6 +58,7 @@ private:
     VkDescriptorSetLayout timeDescriptorSetLayout;
 	//TODO**************************************************************************
 	VkDescriptorSetLayout computeDescriptorSetLayout;
+	//VkDescriptorSetLayout grassDescriptorSetLayout;
 	//END********************************************************************
     
     VkDescriptorPool descriptorPool;
@@ -68,6 +69,7 @@ private:
 
 	//TODO**************************
 	std::vector<VkDescriptorSet> computeDescriptorSets;
+	std::vector<VkDescriptorSet> grassDescriptorSets;
 	//END*********************************
 
     VkPipelineLayout graphicsPipelineLayout;

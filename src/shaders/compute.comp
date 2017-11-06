@@ -31,7 +31,7 @@ layout(set = 2, binding = 0) buffer Blades
     Blade blades[];
 };
 
-layout(set = 4,binding = 0) buffer CulledBlades
+layout(set = 2,binding = 1) buffer CulledBlades
 {
     Blade culledBlades[];
 };
@@ -39,7 +39,7 @@ layout(set = 4,binding = 0) buffer CulledBlades
 // The project is using vkCmdDrawIndirect to use a buffer as the arguments for a draw call
 // This is sort of an advanced feature so we've showed you what this buffer should look like
 //
- layout(set = 3, binding = 0) buffer NumBlades {
+ layout(set = 2, binding = 2) buffer NumBlades {
 	  uint vertexCount;   // Write the number of blades remaining here
  	  uint instanceCount; // = 1
  	  uint firstVertex;   // = 0
@@ -60,6 +60,7 @@ void main() {
     // TODO: Apply forces on every blade and update the vertices in the buffer
 	uint index = gl_GlobalInvocationID.x;
 
+	/*
 	vec3 v0 = vec3(blades[index].v0[0],blades[index].v0[1],blades[index].v0[2]);
 	vec3 v1 = vec3(blades[index].v1[0],blades[index].v1[1],blades[index].v1[2]);
 	vec3 v2 = vec3(blades[index].v2[0],blades[index].v2[1],blades[index].v2[2]);
@@ -119,5 +120,9 @@ void main() {
 		culledBlades[index].v2 = blades[index].v2;
 		culledBlades[index].up = blades[index].up;
 	}
+	*/
 
+
+	//first let the grass to grow on the plane
+	culledBlades[atomicAdd(numBlades.vertexCount,1)] = blades[index];
 }
