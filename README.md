@@ -1,7 +1,24 @@
-Instructions - Vulkan Grass Rendering
+Vulkan Grass Rendering
 ========================
 
-This is due **Sunday 11/5, evening at midnight**.
+**University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 6**
+
+* Jonathan Lee
+* Tested on: Tested on: Windows 7, i7-7700 @ 4.2GHz 16GB, GTX 1070 (Personal Machine)
+
+# Overview 
+
+In this project, I was able to explore Vulkan by setting up a simple pipeline to render and simulate grass. This follows, [Responsive Real-Time Grass Rendering for General 3D Scenes](https://www.cg.tuwien.ac.at/research/publications/2017/JAHRMANN-2017-RRTG/JAHRMANN-2017-RRTG-draft.pdf) very closely.
+
+![](img/result3.gif)
+
+### Contents
+
+* `src/` C++/Vulkan source files.
+  * `shaders/` glsl shader source files
+  * `images/` images used as textures within graphics pipelines
+* `external/` Includes and static libraries for 3rd party libraries.
+* `img/` Screenshots and images 
 
 **Summary:**
 In this project, you will use Vulkan to implement a grass simulator and renderer. You will
@@ -12,65 +29,6 @@ The remaining blades will be passed to a graphics pipeline, in which you will wr
 You will write a vertex shader to transform Bezier control points, tessellation shaders to dynamically create
 the grass geometry from the Bezier curves, and a fragment shader to shade the grass blades.
 
-The base code provided includes all of the basic Vulkan setup, including a compute pipeline that will run your compute
-shaders and two graphics pipelines, one for rendering the geometry that grass will be placed on and the other for 
-rendering the grass itself. Your job will be to write the shaders for the grass graphics pipeline and the compute pipeline, 
-as well as binding any resources (descriptors) you may need to accomplish the tasks described in this assignment.
-
-![](img/grass.gif)
-
-You are not required to use this base code if you don't want
-to. You may also change any part of the base code as you please.
-**This is YOUR project.** The above .gif is just a simple example that you
-can use as a reference to compare to.
-
-**Important:**
-- If you are not in CGGT/DMD, you may replace this project with a GPU compute
-project. You MUST get this pre-approved by Austin Eng before continuing!
-
-### Contents
-
-* `src/` C++/Vulkan source files.
-  * `shaders/` glsl shader source files
-  * `images/` images used as textures within graphics pipelines
-* `external/` Includes and static libraries for 3rd party libraries.
-* `img/` Screenshots and images to use in your READMEs
-
-### Installing Vulkan
-
-In order to run a Vulkan project, you first need to download and install the [Vulkan SDK](https://vulkan.lunarg.com/).
-Make sure to run the downloaded installed as administrator so that the installer can set the appropriate environment
-variables for you.
-
-Once you have done this, you need to make sure your GPU driver supports Vulkan. Download and install a 
-[Vulkan driver](https://developer.nvidia.com/vulkan-driver) from NVIDIA's website.
-
-Finally, to check that Vulkan is ready for use, go to your Vulkan SDK directory (`C:/VulkanSDK/` unless otherwise specified)
-and run the `cube.exe` example within the `Bin` directory. IF you see a rotating gray cube with the LunarG logo, then you
-are all set!
-
-### Running the code
-
-While developing your grass renderer, you will want to keep validation layers enabled so that error checking is turned on. 
-The project is set up such that when you are in `debug` mode, validation layers are enabled, and when you are in `release` mode,
-validation layers are disabled. After building the code, you should be able to run the project without any errors. You will see 
-a plane with a grass texture on it to begin with.
-
-![](img/cube_demo.png)
-
-## Requirements
-
-**Ask on the mailing list for any clarifications.**
-
-In this project, you are given the following code:
-
-* The basic setup for a Vulkan project, including the swapchain, physical device, logical device, and the pipelines described above.
-* Structs for some of the uniform buffers you will be using.
-* Some buffer creation utility functions.
-* A simple interactive camera using the mouse. 
-
-You need to implement the following features/pipeline stages:
-
 * Compute shader (`shaders/compute.comp`)
 * Grass pipeline stages
   * Vertex shader (`shaders/grass.vert')
@@ -79,37 +37,7 @@ You need to implement the following features/pipeline stages:
   * Fragment shader (`shaders/grass.frag`)
 * Binding of any extra descriptors you may need
 
-See below for more guidance.
-
-## Base Code Tour
-
-Areas that you need to complete are
-marked with a `TODO` comment. Functions that are useful
-for reference are marked with the comment `CHECKITOUT`.
-
-* `src/main.cpp` is the entry point of our application.
-* `src/Instance.cpp` sets up the application state, initializes the Vulkan library, and contains functions that will create our
-physical and logical device handles.
-* `src/Device.cpp` manages the logical device and sets up the queues that our command buffers will be submitted to.
-* `src/Renderer.cpp` contains most of the rendering implementation, including Vulkan setup and resource creation. You will 
-likely have to make changes to this file in order to support changes to your pipelines.
-* `src/Camera.cpp` manages the camera state.
-* `src/Model.cpp` manages the state of the model that grass will be created on. Currently a plane is hardcoded, but feel free to 
-update this with arbitrary model loading!
-* `src/Blades.cpp` creates the control points corresponding to the grass blades. There are many parameters that you can play with
-here that will change the behavior of your rendered grass blades.
-* `src/Scene.cpp` manages the scene state, including the model, blades, and simualtion time.
-* `src/BufferUtils.cpp` provides helper functions for creating buffers to be used as descriptors.
-
-We left out descriptions for a couple files that you likely won't have to modify. Feel free to investigate them to understand their 
-importance within the scope of the project.
-
 ## Grass Rendering
-
-This project is an implementation of the paper, [Responsive Real-Time Grass Rendering for General 3D Scenes](https://www.cg.tuwien.ac.at/research/publications/2017/JAHRMANN-2017-RRTG/JAHRMANN-2017-RRTG-draft.pdf).
-Please make sure to use this paper as a primary resource while implementing your grass renderers. It does a great job of explaining
-the key algorithms and math you will be using. Below is a brief description of the different components in chronological order of how your renderer will
-execute, but feel free to develop the components in whatever order you prefer.
 
 ### Representing Grass as Bezier Curves
 
@@ -219,11 +147,6 @@ You are free to define two parameters here.
 Define a function such that the grass blades in the bucket closest to the camera are kept while an increasing number of grass blades
 are culled with each farther bucket.
 
-#### Occlusion culling (extra credit)
-
-This type of culling only makes sense if our scene has additional objects aside from the plane and the grass blades. We want to cull grass blades that
-are occluded by other geometry. Think about how you can use a depth map to accomplish this!
-
 ### Tessellating Bezier curves into grass blades
 
 In this project, you should pass in each Bezier curve as a single patch to be processed by your grass graphics pipeline. You will tessellate this patch into 
@@ -239,59 +162,20 @@ of each blade. Once you have determined the world space position of each vector,
 To build more intuition on how tessellation works, I highly recommend playing with the [helloTessellation sample](https://github.com/CIS565-Fall-2017/Vulkan-Samples/tree/master/samples/5_helloTessellation)
 and reading this [tutorial on tessellation](http://in2gpu.com/2014/07/12/tessellation-tutorial-opengl-4-3/).
 
-## Resources
 
-### Links
+# Performance Analysis
 
-The following resources may be useful for this project.
+The performance analysis is where you will investigate how...
+* Your renderer handles varying numbers of grass blades
+* The improvement you get by culling using each of the three culling tests
 
+# Resources
 * [Responsive Real-Time Grass Grass Rendering for General 3D Scenes](https://www.cg.tuwien.ac.at/research/publications/2017/JAHRMANN-2017-RRTG/JAHRMANN-2017-RRTG-draft.pdf)
 * [CIS565 Vulkan samples](https://github.com/CIS565-Fall-2017/Vulkan-Samples)
 * [Official Vulkan documentation](https://www.khronos.org/registry/vulkan/)
 * [Vulkan tutorial](https://vulkan-tutorial.com/)
 * [RenderDoc blog on Vulkan](https://renderdoc.org/vulkan-in-30-minutes.html)
 * [Tessellation tutorial](http://in2gpu.com/2014/07/12/tessellation-tutorial-opengl-4-3/)
+* [More Tessellation](http://prideout.net/blog/?p=48#levels)
 
 
-## Third-Party Code Policy
-
-* Use of any third-party code must be approved by asking on our Google Group.
-* If it is approved, all students are welcome to use it. Generally, we approve
-  use of third-party code that is not a core part of the project. For example,
-  for the path tracer, we would approve using a third-party library for loading
-  models, but would not approve copying and pasting a CUDA function for doing
-  refraction.
-* Third-party code **MUST** be credited in README.md.
-* Using third-party code without its approval, including using another
-  student's code, is an academic integrity violation, and will, at minimum,
-  result in you receiving an F for the semester.
-
-
-## README
-
-* A brief description of the project and the specific features you implemented.
-* At least one screenshot of your project running.
-* A performance analysis (described below).
-
-### Performance Analysis
-
-The performance analysis is where you will investigate how...
-* Your renderer handles varying numbers of grass blades
-* The improvement you get by culling using each of the three culling tests
-
-## Submit
-
-If you have modified any of the `CMakeLists.txt` files at all (aside from the
-list of `SOURCE_FILES`), mentions it explicity.
-Beware of any build issues discussed on the Google Group.
-
-Open a GitHub pull request so that we can see that you have finished.
-The title should be "Project 6: YOUR NAME".
-The template of the comment section of your pull request is attached below, you can do some copy and paste:  
-
-* [Repo Link](https://link-to-your-repo)
-* (Briefly) Mentions features that you've completed. Especially those bells and whistles you want to highlight
-    * Feature 0
-    * Feature 1
-    * ...
-* Feedback on the project itself, if any.
