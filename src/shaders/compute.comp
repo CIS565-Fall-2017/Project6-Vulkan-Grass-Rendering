@@ -77,6 +77,10 @@ void main() {
 	// Forward vector
 	vec3 f = normalize(cross(up, vec3(sin(orientation), 0.0, cos(orientation))));
 
+	// Along the width vector
+	float dir= orientation - 1.57079632679;
+	vec3 atw = normalize(cross(up, vec3(sin(dir), 0.0, cos(dir))));
+
 	// Gravity
 	float acc = -9.8;
 	vec3 gravity = vec3(0.0, 1, 0.0);
@@ -126,6 +130,37 @@ void main() {
 	// You want to write the visible blades to the buffer without write conflicts between threads
 	bool culled = false;
 	
+	// Orientation Culling
+	mat4 inverseView = inverse(camera.view);
+	vec4 dirc = inverseView * vec4(0.0,0.0,1.0,0.0);
+	float oCull = abs(dot(dirc.xyz, atw.xyz));
+	if (oCull < 0.9) {
+		culled = true;
+	}
+
+	// View Frustrum Culling
+	vec3 m = .25 * v0.xyz + .5 * v1.xyz + .25 * v2.xyz;
+	vec4 v0NDC = (camera.proj * camera.view * vec4(v0, 1.0));
+	vec4 mNDC = (camera.proj * camera.view * vec4(m, 1.0) );
+	vec4 v2NDC = (camera.proj * camera.view * vec4(v2, 1.0));
+	v0NDC/= v0NDC.w;
+	mNDC/= mNDC.w;
+	v2NDC/= v2NDC.w;
+
+	if (!inBounds(v0NDC.x, 1) && !inBounds(v0NDC.y, 1) && !inBounds(v0NDC.z, 1) &&
+	 !inBounds(v2NDC.x, 1) && !inBounds(v2NDC.y, 1) && !inBounds(v2NDC.z, 1) &&
+	 !inBounds(mNDC.x, 1) && !inBounds(mNDC.y, 1) && !inBounds(mNDC.z, 1) ) {
+		culled = true;
+	}
+
+	// Distance test
+	float distance = 20;
+	float bucket = 5;
+	float dist = - (camera.view * vec4(v0, 1.0)).z;
+
+	if (dist > distance) {
+		culled = true;
+	}
 
 
 	if (!culled) {
