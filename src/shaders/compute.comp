@@ -2,6 +2,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 
 #define WORKGROUP_SIZE 32
+
 layout(local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 layout(set = 0, binding = 0) uniform CameraBufferObject {
@@ -59,7 +60,63 @@ void main() {
 	}
 	barrier(); // Wait till all threads reach this point
 
+
+
     // TODO: Apply forces on every blade and update the vertices in the buffer
+	Blade blade = inputBlades[index];
+
+	vec3 v0 = vec3(blade.v0);
+	vec3 v1 = vec3(blade.v1);
+	vec3 v2 = vec3(blade.v2);
+	vec3 up = vec3(blade.up);
+	float orientation = blade.v0.w;
+	float h = blade.v1.w;
+	float w = blade.v2.w;
+	float stiffness = blade.up.w;
+
+	// Forward vector
+	vec3 f = normalize(cross(up, vec3(sin(orientation), 0.0, cos(orientation))));
+
+	// Gravity
+	float acc = -9.8;
+	vec3 gravity = vec3(0.0, 1, 0.0);
+	vec3 gE = normalize(gravity) * acc;
+	vec3 gF = 0.25 * length(gE) * f;
+	vec3 g = gE + gF;
+
+	// Recovery
+	vec3 iv2 = h * up + v0;
+	vec3 recovery =  (iv2 - v2) * stiffness;
+
+	// Wind
+	vec3 wi = vec3(1, 0, 0);
+	float fd = 1 -  dot ( wi * v0 / length(wi * v0) , (v2 - v0) / length(v2 - v0) ) ;
+	float fr = dot ((v2 - v0) , up) / h;	
+	vec3 wind = wi * v0 * fd * fr; 
+
+
+	// State Validation
+	vec3 tv2 = (g + recovery + wind) * deltaTime;
+	v2 = v2 + tv2;
+	v2 = v2 - up * min(dot(up, v2 - v0), 0);
+
+	float lproj = length( v2 - v0 - up * dot( v2 - v1, up) );
+	v1 = v0 + h * up * max( 1 - (lproj/h), 0.05 * max( lproj / h, 1) );
+
+
+	float n = 3; // degree of bezier
+	float L0 = distance(v0, v1);
+	float L1 = distance(v0, v1) + distance(v0, v2);
+	float L = (2 * L0 + (n-1) * L1) / (n + 1);
+	float r = h / L;
+	v1 = v0 + r * (v1 - v0);
+	v2 = v1 + r * (v2 - v1);
+
+	blade.v2 = vec4(v2, w);
+
+	inputBlades[index] = blade;
+
+
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
