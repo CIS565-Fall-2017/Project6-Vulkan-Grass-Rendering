@@ -30,7 +30,7 @@ void main() {
 	teBladeUp = tcBladeUp[0];
 	teBladeDir = tcBladeDir[0];
 	
-	float level = 1.0f;
+	float level = 5.0f;
 
 	// TODO: Set level of tesselation
     gl_TessLevelInner[0] = 1.0f;
