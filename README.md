@@ -54,7 +54,7 @@ Here I used it to do 2 things as following:
 
     float wave_info = (cos((dot(vec3(this_v0.x, 0, this_v0.z), wind_dir) - wind_speed * totalTime) / wave_division_width) + 0.7);
 
-//5.1 Wind
+    //5.1 Wind
     //directional alignment 
     float fd = 1 - abs(dot(wind_dir, normalize(this_v2 - this_v0)));
 
@@ -62,7 +62,7 @@ Here I used it to do 2 things as following:
     float fr = dot((this_v2 - this_v0), this_up) / this_h;
 
     //
-	float wind_power = 15.0f;
+    float wind_power = 15.0f;
     vec3 w = wind_dir * wind_power * wave_info * fd * fr;
 
     ```
@@ -71,7 +71,7 @@ Here I used it to do 2 things as following:
   * ***View Frustum Culling***: We also want to cull blades that are outside of the view-frustum, considering they won't show up in the frame anyway. To determine if a grass blade is in the view-frustum, we want to compare the visibility of three points: `v0, v2, and m`, where `m = (1/4)v0 * (1/2)v1 * (1/4)v2`. Notice that we aren't using `v1` for the visibility test. This is because the `v1` is a Bezier guide that doesn't represent a position on the grass blade. We instead use `m` to approximate the midpoint of our Bezier curve. If all three points are outside of the view-frustum, we will cull the grass blade. Not as the paper provides, I transformed the point into **NDC coorditnates** and then check if they are inside of the frustum.
   * ***Distance Culling***: Similarly to orientation culling, we can end up with grass blades that at large distances are smaller than the size of a pixel. This could lead to additional artifacts in our renders. In this case, we can cull grass blades as a function of their distance from the camera. Here I used the same method the paper presents as following: (Divide the blades into different buckets according to the horizontal distance, and then cull different number of the bladess according to the division)
   ```glsl
-  //Distance Culling
+        //Distance Culling
 	bool distance_culled = false;
 	float min_distance = 0.1;
 	float far_distance = 100;
@@ -102,7 +102,7 @@ Here I used it to do 2 things as following:
 ### Tessellation Shader
 I won't explain too much about how the tessellation shader works, but I will present how tessellation works on some different shapes mentioned in the paper. Here are the code in *tessellation evaluation shader*:
 ```glsl
-// quad
+        // quad
 	//float t = u;
 	
 	// triangle
