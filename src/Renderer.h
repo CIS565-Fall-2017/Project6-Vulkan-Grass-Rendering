@@ -20,8 +20,6 @@ public:
     void CreateTimeDescriptorSetLayout();
     void CreateComputeDescriptorSetLayout();
 
-	//void CreateGrassDescriptorSetLayout();
-
     void CreateDescriptorPool();
 
     void CreateCameraDescriptorSet();
