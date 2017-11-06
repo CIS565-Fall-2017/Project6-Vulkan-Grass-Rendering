@@ -97,7 +97,7 @@ void main() {
 
     //Wind
     vec3 wind_dir = normalize(vec3(0.5, 0, 1));
-    float wind_speed = 5.0;
+    float wind_speed = 8.0;
     float wave_division_width = 5.0;
 
     float wave_info = (cos((dot(vec3(this_v0.x, 0, this_v0.z), wind_dir) - wind_speed * totalTime) / wave_division_width) + 0.7);
@@ -110,8 +110,9 @@ void main() {
     float fr = dot((this_v2 - this_v0), this_up) / this_h;
 
     //
-	float wind_power = 12.0f;
+	float wind_power = 15.0f;
     vec3 w = wind_dir * wind_power * wave_info * fd * fr;
+
     //Total Force
 	vec3 tv2 = (g + r + w) * deltaTime;
     vec3 fv2 = this_v2 + tv2;

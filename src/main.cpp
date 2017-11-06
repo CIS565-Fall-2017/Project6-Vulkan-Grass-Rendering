@@ -144,10 +144,20 @@ int main() {
     glfwSetMouseButtonCallback(GetGLFWWindow(), mouseDownCallback);
     glfwSetCursorPosCallback(GetGLFWWindow(), mouseMoveCallback);
 
+	int time_start = GetTickCount();
+	int count = 0;
+
     while (!ShouldQuit()) {
         glfwPollEvents();
         scene->UpdateTime();
         renderer->Frame();
+		count++;
+		if (count == 1000) {
+			int total_time = GetTickCount() - time_start;
+			printf("Total Time for 500 frames: %d\n", total_time);
+			printf("Time per frame: %f\n", float(total_time) / 1000.0);
+			printf("fps: %f\n", 1000000.0 / float(total_time));
+		}
     }
 
     vkDeviceWaitIdle(device->GetVkDevice());
