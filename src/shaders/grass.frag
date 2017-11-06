@@ -27,7 +27,7 @@ void main() {
 	// a blend effect grass color
 	vec3 mixedColor = mix(lowerColor, upperColor, uv.y);
 
-	vec3 PointLightPos = normalize(vec3(-3.0, 8.0, 3.0));
+	vec3 PointLightPos = normalize(vec3(-5.0, 8.0, 3.0));
 
 	float LambertTerm = clamp(dot(nor, PointLightPos), 0, 1.0) + 0.15; //simple Lambert shading + ambient light
 

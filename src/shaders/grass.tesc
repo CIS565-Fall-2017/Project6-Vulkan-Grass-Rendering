@@ -23,7 +23,7 @@ layout(location = 3) patch out vec4 tessellation_eval_forward;
 
 void main() {
 	// Don't move the origin location of the patch
-    gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
+	gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
 
 	// TODO: Write any shader outputs
 	// So far, just pass through
@@ -32,14 +32,39 @@ void main() {
 	tessellation_eval_up = tessellation_control_up[0];
 	tessellation_eval_forward = tessellation_control_forward[0];
 
-
-
 	// TODO: Set level of tesselation
-	gl_TessLevelInner[0] = 1.0;
-	gl_TessLevelInner[1] = 5.0;
+//	gl_TessLevelInner[0] = 1.0;
+//	gl_TessLevelInner[1] = 5.0;
 
-	gl_TessLevelOuter[0] = 5.0;
+//	gl_TessLevelOuter[0] = 5.0;
+//	gl_TessLevelOuter[1] = 1.0;
+//	gl_TessLevelOuter[2] = 5.0;
+//	gl_TessLevelOuter[3] = 1.0;
+	
+
+	// Tess depend on the depth of origin location
+	vec4 originLocation = gl_in[gl_InvocationID].gl_Position;
+	originLocation.w = 1.0;
+
+	// To clip space
+	originLocation = camera.proj * camera.view * originLocation;
+
+	// To NDC
+	originLocation /= originLocation.w;
+
+	float depth = clamp(-originLocation.z, 0.0, 1.0);
+
+	float minTessLevel = 2.0;
+	float maxTessLevel = 8.0;
+
+	// nearer, higher tessl level
+	float mixLevel = mix(maxTessLevel, minTessLevel, 0.25 * floor(depth / 0.2));
+
+	gl_TessLevelInner[0] = 1.0;
+	gl_TessLevelInner[1] = mixLevel;
+
+	gl_TessLevelOuter[0] = mixLevel;
 	gl_TessLevelOuter[1] = 1.0;
-	gl_TessLevelOuter[2] = 5.0;
+	gl_TessLevelOuter[2] = mixLevel;
 	gl_TessLevelOuter[3] = 1.0;
 }
