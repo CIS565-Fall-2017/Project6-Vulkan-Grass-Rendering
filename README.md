@@ -1,3 +1,73 @@
+Grass Rendering with Vulkan
+===============
+
+**University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 6**
+
+* Mauricio Mutai
+* Tested on: Windows 10, i7-7700HQ @ 2.2280GHz 16GB, GTX 1050Ti 4GB (Personal Computer)
+
+## Overview
+
+### Introduction
+
+One of the aims of this project was to implement a simple program that renders a large number (thousands) of natural-looking grass blades. These blades should react to external forces, such as gravity and wind, as well as internal forces to maintain its structure in a sensible way.
+
+This grass renderer is heavily based on the work presented in [Responsive Real-Time Grass Rendering for General 3D Scenes](https://www.cg.tuwien.ac.at/research/publications/2017/JAHRMANN-2017-RRTG/JAHRMANN-2017-RRTG-draft.pdf) by Jahrmann and Wimmer. 
+
+In summary, each grass blade is represented by three points, `v0`, `v1`, and `v2`, which themselves define a quadratic Bezier curve. One of these points, `v0`, is fixed and represents position of the blade's root. `v2` represents the position of the blade's tip. `v1` is an auxiliary point used for defining the Bezier curve. In order to render one frame, we apply certain forces (wind, gravity, and recovery) to `v2` to determine its new position. We validate `v2` to make sure it does not go under ground, and then adjust `v1` to make sure the grass blade has approximately constant length.
+
+Having `v0`, `v1`, and `v2`, we can then use a tessellation shader to draw a 2D shape that follows the Bezier curve defined by those points. This 2D shape is our final grass blade.
+
+In addition, we perform some culling in order to avoid drawing blades that will not contribute significantly to the final image. Three culling methods were implemented -- see more below.
+
+The second (and perhaps more important) aim of this project was to get myself acquaintanced with the Vulkan API. As I completed the project, I made use of many pages of the Khronos documentation for Vulkan (for example, this page about [`vkCmdDrawIndirect()`](https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCmdDrawIndirect.html)).
+
+### Features
+
+Below are the renderer's main features:
+
+* Compute shader (`shaders/compute.comp`)
+  * Updates blades by applying forces (wind, gravity, recovery)
+  * Multiple wind forces available, selected via `#define`
+  * Orientation culling
+  * View-frustum culling
+  * Distance culling
+  * Wind direction can be used to determine blade's final color
+* Grass pipeline stages
+  * Vertex shader (`shaders/grass.vert`)
+    * Computes positions modified by model matrix
+    * Computes bitangent vector (direction along blade's width)
+  * Tessellation control shader (`shaders/grass.tesc`)
+    * Dynamically tessellates blades to varying levels of detail depending on distance from camera
+  * Tessellation evaluation shader (`shaders/grass.tese`)
+    * Evaluates Bezier curve to place blade's vertices in correct positions
+  * Fragment shader (`shaders/grass.frag`)
+    * Two coloring methods, depending on which one was chosen in compute shader
+      * Wind direction (no shading)
+      * Lambert shading, with blades having constant albedo color
+
+Below are some of the main changes made to the base code (mostly related to Vulkan):
+
+* `Renderer.cpp`
+  * `Renderer::CreateComputeDescriptorSetLayout()`
+    * Define descriptor set layout for compute shader
+    * One buffer for storing all blades
+    * One buffer for storing only blades to be rendered
+    * One buffer for keeping track of how many blades should be rendered
+  * `Renderer::CreateComputeDescriptorSets()`
+    * Update descriptor sets for compute shader using layout above and buffers created in `Blades` objects 
+  * `Renderer::CreateComputePipeline()`
+    * Define one push constant (for storing total number of blades) to pass to compute shader
+  * `Renderer::RecordComputeCommandBuffer()`
+    * Update push constant for compute shader
+  * `Renderer::Frame()`
+    * Optionally print number of blades rendered in frame by copying a `VkBuffer` back into CPU memory
+* `Blades.h`/`Blades.cpp`
+  * Define additional field `color`
+    * `color.w` determines whether to use `color.xyz` or default green color to render grass blade
+
+## Analysis
+
 Instructions - Vulkan Grass Rendering
 ========================
 

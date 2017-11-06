@@ -43,15 +43,6 @@ void main() {
 	// compute normal
 	fs_normal = normalize(cross(normalize(vec3(bezierB - bezierA)), tese_bitangent.xyz));
 
-	// hard-coded height
-	//worldPos.y += 2.0 * v;
-
-	//worldPos.z += v <= 0.01 ? 0.0 :
-	//              v <= 0.26 ? 0.1 :
-	//			  v <= 0.51 ? 0.3 :
-	//			  v <= 0.99 ? 0.6 :
-	//			              1.0;
-
 	// middle displacement ====================================================
 	// TODO
 	// d = w n (0.5 - |u - 0.5|(1 - v))
