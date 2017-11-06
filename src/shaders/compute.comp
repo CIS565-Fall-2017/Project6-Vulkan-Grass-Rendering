@@ -49,6 +49,10 @@ bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
 }
 
+float rand(vec2 co){
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+}
+
 void main() {
 	// Reset the number of blades to 0
 	uint idx = gl_GlobalInvocationID.x;
@@ -69,6 +73,7 @@ void main() {
 	float height      = blade.v1.w;
 	float width       = blade.v2.w;
 	float stiffness   = blade.up.w;
+	mat4 VP = camera.proj * camera.view;
 
 	// Blade Face direction:
 	// i.e. Which way is forward
@@ -130,5 +135,39 @@ void main() {
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
 	
-    culledBlades[atomicAdd(numBlades.vertexCount , 1)] = blades[idx];
+	// Culling Heurstic 1: Orientation culling
+    vec3 viewDirection = (inverse(camera.view) * vec4(0,0,-1,0)).xyz;
+	//Avoid vertical culling (if the camera is looking straight down)
+	viewDirection = normalize(vec3(viewDirection.x, 0, viewDirection.z));
+	bool cullOrientation = 0.4 > abs(dot(viewDirection, normalize(dir)));
+
+
+	//Culling Heuristic 2: View-Frustrum Culling
+	vec3 m = (v0/4) * (v1/2) * (v2/4);
+
+	//Side Tolerance
+	float tolerance = 0.05;
+
+	vec4  v0_proj =  VP * vec4(v0, 1);	float v0_h    =  v0_proj.w + tolerance;	bool  v0_in   = (-v0_h <= v0_proj.x) && (v0_proj.x <= v0_h) &&	                (-v0_h <= v0_proj.y) && (v0_proj.y <= v0_h) &&				    (-v0_h <= v0_proj.z) && (v0_proj.z <= v0_h);	vec4  m_proj  =  VP * vec4( m,1);	float m_h     =  m_proj.w + tolerance;	bool  m_in    = (-m_h <= m_proj.x) && (m_proj.x <= m_h) &&	                (-m_h <= m_proj.y) && (m_proj.y <= m_h) &&				    (-m_h <= m_proj.z) && (m_proj.z <= m_h);		vec4  v2_proj =  VP * vec4(v2,1);	float v2_h    =  v2_proj.w + tolerance;	bool  v2_in   = (-v2_h <= v2_proj.x) && (v2_proj.x <= v2_h) &&	                (-v2_h <= v2_proj.y) && (v2_proj.y <= v2_h) &&				    (-v2_h <= v2_proj.z) && (v2_proj.z <= v2_h);	bool cullViewFrustrum = (!v0_in) || (!m_in) || (!v2_in);
+
+	//Culling Heuristic 3: Distance Culling
+	bool cullDistance = false;
+	float dist = v0_proj.z/v0_proj.w;
+	if (dist > 0.992) {
+		// Random float number 0--1
+		float random = rand(v0.xy);
+
+		// Bucket Threshold
+		float bucketThreshold = (1 - dist)*25;
+	    cullDistance = random > bucketThreshold;
+	}
+	// Cull completely if less than 0.999
+	if (dist > 0.999) {
+	   cullDistance = true;
+	}
+
+
+	if (/*!cullOrientation && !cullViewFrustrum && */ !cullDistance) {
+	   culledBlades[atomicAdd(numBlades.vertexCount , 1)] = blades[idx];
+	}
 }
