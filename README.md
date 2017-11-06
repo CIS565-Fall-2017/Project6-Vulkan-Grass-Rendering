@@ -27,21 +27,29 @@ The total force acting on a blade of grass is simply the sum of these 3 forces m
 
 ### Culling 
 
-#### Orientation culling
+#### Orientation Culling
 
-#### View-frustum culling
+Since the blades of grass are modeled as flat 2D tessellated geometry, blades viewed at an angle perpendicular to their face normal can result in visual artifacts that lower image quality. Furthermore, as they contribute very little to the scene, these blades can be culled using a simple dot product test. From any given view, the number of such blades is relatively small, but it does grant a modest speed improvement.
 
-#### Distance culling
+![](img/data/normals.PNG)
+
+#### View-frustum Culling
+
+Of course, blades outside the camera's view frustrum need not be rendered, and those can be culled as well. My implementation is to cull based on the first control point of a given blade, which is located at the point it connects to the ground. This seems to result in the cleanest culling, as using other control points can lead to flickering at the edges. However, having some margin on each dimension of the frustrum is advisable since it is possible to accidentally cull a blade whose top should be visible. 
+
+#### Distance Based Culling
 |No Distance Culling (2^14 blades) | Distance Culling (2^15 blades) |
 |:----:|:----:|
 |![](img/NoDistanceCulling2pow14.PNG)|![](img/DistanceCulling2pow15.PNG)|
 
-![](img/data/distanceCulling.PNG)
-
-
-##### Debug View for Distance Based Culling
+Distance based culling is used to leverage the fact that we can achieve similar visual results by having a greater concentration of blades closer to the camera and fewer blades as we move away. In my implementation, blades are placed into buckets based on how far from the camera they are. At each successive bucket further from the camera, the probability of a blade being culled increases based on a pseudo random probability distribution function. The debug screenshot below illustrates this using the center of the scene in place of the camera eye. 
 
 ![](img/DistanceCullingDebug.PNG)
+
+Some tweaking is required with this culling method. My implementation increases the "culling probability" exponentially away from the camera, but it would be worth it to explore what might be optimal. It is also important to note that we want to balance between gaining time wins and culling too many blades. In the examples above, we achieve comparable images from rendering 2^14 blades without culling and rendering 2^15 blades with my current distance based culling method. However, note that as shown by the chart below, the right side image still had a significant time win. 
+
+![](img/data/distanceCulling.PNG)
+
 
 ### Distance Based Tessellation
 
@@ -49,9 +57,9 @@ The total force acting on a blade of grass is simply the sum of these 3 forces m
 |:----:|:----:|
 |![](img/NoDistanceBasedTesselation2pow16.PNG)|![](img/DistanceBasedTesselation2pow16.PNG)|
 
+Similarly to culling based on distance form the camera, we can leverage the fact that at farther distances from the camera, blades do not need to be modelled in as high definition. By reducing tessellation parameters based on distance, we can gain a very significant time optimization (~50%) where the visual differences are almost imperceptible. 
+
 ![](img/data/distanceTessellation.PNG)
-This type of culling only makes sense if our scene has additional objects aside from the plane and the grass blades. We want to cull grass blades that
-are occluded by other geometry. Think about how you can use a depth map to accomplish this!
 
 ### References
 
