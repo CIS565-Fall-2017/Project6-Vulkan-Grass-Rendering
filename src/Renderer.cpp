@@ -401,7 +401,7 @@ void Renderer::CreateGrassDescriptorSets() {
 
     for (uint32_t i = 0; i < scene->GetBlades().size(); ++i) {
         VkDescriptorBufferInfo bladesBufferInfo = {};
-        bladesBufferInfo.buffer = scene->GetBlades()[i]->GetBladesBuffer(); // GetCulledBladesBuffer()? TODO
+        bladesBufferInfo.buffer = scene->GetBlades()[i]->GetCulledBladesBuffer();
         bladesBufferInfo.offset = 0;
         bladesBufferInfo.range = sizeof(BladeBufferObject) * NUM_BLADES; // how to get number of culled blades?
 
@@ -1143,8 +1143,8 @@ void Renderer::RecordCommandBuffers() {
         vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, grassPipeline);
 
         for (uint32_t j = 0; j < scene->GetBlades().size(); ++j) {
-            //VkBuffer vertexBuffers[] = { scene->GetBlades()[j]->GetCulledBladesBuffer() };
-            VkBuffer vertexBuffers[] = { scene->GetBlades()[j]->GetBladesBuffer() }; // bypass the compute pipeline?
+            VkBuffer vertexBuffers[] = { scene->GetBlades()[j]->GetCulledBladesBuffer() };
+            //VkBuffer vertexBuffers[] = { scene->GetBlades()[j]->GetBladesBuffer() }; // bypass the compute pipeline?
             VkDeviceSize offsets[] = { 0 };
 
             // Bind vertex buffer(s)
@@ -1152,9 +1152,6 @@ void Renderer::RecordCommandBuffers() {
 
             // Bind the descriptor set for each grass blades model
             //vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, grassPipelineLayout, 2, 1, &grassDescriptorSets[j], 0, nullptr);
-
-            // Bind the camera descriptor set. This is set 0 in all pipelines so it will be inherited
-            //vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, grassPipelineLayout, 0, 1, &cameraDescriptorSet, 0, nullptr);
 
             // Draw
             vkCmdDrawIndirect(commandBuffers[i], scene->GetBlades()[j]->GetNumBladesBuffer(), 0, 1, sizeof(BladeDrawIndirect));

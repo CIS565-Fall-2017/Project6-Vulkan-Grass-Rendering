@@ -14,6 +14,6 @@ layout (location = 1) in vec3 fs_posVC;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    float lambertTerm = dot(faceforward(fs_nor, normalize(fs_posVC), fs_nor), normalize((camera.view * vec4(1.0, 1.0, 1.0, 0.0)).xyz));
+    float lambertTerm = dot(faceforward(fs_nor, normalize(fs_posVC), fs_nor), normalize((camera.view * vec4(1.0, 3.0, 1.0, 0.0)).xyz));
     outColor = vec4(0.0, 1.0, 0.0, 1.0) * lambertTerm;
 }
