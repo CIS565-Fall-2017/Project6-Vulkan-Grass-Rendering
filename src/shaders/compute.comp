@@ -100,7 +100,7 @@ void main()
 	vec3 gravity = gE + gF;	
 
 	// Wind ----------------------------------
-	vec3 wi = vec3(1, 0, 0) * cos(totalTime);			
+	vec3 wi = vec3(1, 0, 1) * cos(totalTime) * 5.0;			
 	float fd = 1 - abs(dot(normalize(wi), normalize(v2 - v0)));	// Directional alignment
 	float fr = dot((v2 - v0), up) / height;
 	float alignment = fd * fr;
@@ -152,7 +152,7 @@ void main()
 	vec3 dirB = f;							// direction along blade
 
 	// Culled blade
-	if((dot(dirC, dirB)) > 0.9) {
+	if(dot(dirC, dirB) > 0.9) {
 		return;
 	}
 
@@ -163,7 +163,7 @@ void main()
 	
 	vec4 v0_ndc = camera.proj * camera.view * vec4(v0, 1.0);
 	
-	float t		= 1.0;				// Tolerance
+	float t		= 3.0;				// Tolerance
 	float h		= v0_ndc.w + t;		// Homogenous coordinate
 	float px	= v0_ndc.x;			
 	float py	= v0_ndc.y;
@@ -181,8 +181,8 @@ void main()
 	// Blade gets classified into one of the nLevels
 	float dProj = length(v0 - eyePos.xyz - up * dot((v0 - eyePos.xyz), up));
 	
-	float nLevels = 40.0;		// Distance levels that get distributed over dMax
-	float dMax = 20.0;			// Maximum distance
+	float nLevels = 10.0;		// Distance levels that get distributed over dMax
+	float dMax = 40.0;			// Maximum distance
 
 	// Culled blade
 	if(mod(index, nLevels) < floor(nLevels * (1 - (dProj / dMax)))) {
@@ -190,6 +190,5 @@ void main()
 	}
 
 	// Made it thus far so lets do some stuff to the blade
-	atomicAdd(numBlades.vertexCount, 1);
-	culledBlades[index] = inputBlades[index];
+	culledBlades[atomicAdd(numBlades.vertexCount, 1)] = inputBlades[index];
 }
