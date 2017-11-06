@@ -12,8 +12,6 @@ Tested on: Windows 10, Intel Core i7-7700HQ CPU @ 2.80 GHz, 8GB RAM, NVidia GeFo
 - [Things Done](#things-done)
 
 - [In-Depth](#in-depth)
-
-- [Time Analysis](#time-analysis)
  
 - [Final Thoughts](#final-thougts)
 
