@@ -9,7 +9,7 @@ float generateRandomFloat() {
 Blades::Blades(Device* device, VkCommandPool commandPool, float planeDim) : Model(device, commandPool, {}, {}) {
     std::vector<Blade> blades;
     blades.reserve(NUM_BLADES);
-
+    //srand(123);
     for (int i = 0; i < NUM_BLADES; i++) {
         Blade currentBlade = Blade();
 
@@ -34,6 +34,9 @@ Blades::Blades(Device* device, VkCommandPool commandPool, float planeDim) : Mode
         // Up vector and stiffness coefficient (up)
         float stiffness = MIN_BEND + (generateRandomFloat() * (MAX_BEND - MIN_BEND));
         currentBlade.up = glm::vec4(bladeUp, stiffness);
+
+        // custom color
+        currentBlade.color = glm::vec4(1.0f);
 
         blades.push_back(currentBlade);
     }

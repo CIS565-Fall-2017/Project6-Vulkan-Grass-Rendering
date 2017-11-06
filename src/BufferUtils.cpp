@@ -79,7 +79,8 @@ void BufferUtils::CreateBufferFromData(Device* device, VkCommandPool commandPool
     vkUnmapMemory(device->GetVkDevice(), stagingBufferMemory);
 
     // Create the buffer
-    VkBufferUsageFlags usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | bufferUsage;
+    // for reading stuff, has to be SRC as well
+    VkBufferUsageFlags usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | bufferUsage;
     VkMemoryPropertyFlags flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     BufferUtils::CreateBuffer(device, bufferSize, usage, flags, buffer, bufferMemory);
 

@@ -1,8 +1,22 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
+#define DISTANCE_BUCKETS 8
+#define MAX_DISTANCE 40.0
+#define WIND_TO_COLOR_FACTOR 0.03
+#define WIND_X 0
+#define WIND_Y 1
+#define WIND_Z 2
+#define WIND_RADIAL 3
+#define WIND_TYPE WIND_RADIAL
+
 #define WORKGROUP_SIZE 32
 layout(local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+// based on: https://stackoverflow.com/questions/37056159/using-different-push-constants-in-different-shader-stages
+layout(push_constant) uniform s_pushConstants {
+    int numBlades;
+} pushConstants;
 
 layout(set = 0, binding = 0) uniform CameraBufferObject {
     mat4 view;
@@ -19,6 +33,7 @@ struct Blade {
     vec4 v1;
     vec4 v2;
     vec4 up;
+	vec4 color;
 };
 
 // TODO: Add bindings to:
@@ -36,6 +51,22 @@ struct Blade {
 // 	  uint firstInstance; // = 0
 // } numBlades;
 
+layout(set = 2, binding = 0) buffer InputBlades {
+ 	 Blade inputBlades[];
+};
+
+//output
+layout(set = 2, binding = 1) buffer CulledBlades {
+ 	Blade culledBlades[];
+};
+
+layout(set = 2, binding = 2) buffer NumBlades {
+ 	  uint vertexCount;   // Write the number of blades remaining here
+ 	  uint instanceCount; // = 1
+ 	  uint firstVertex;   // = 0
+ 	  uint firstInstance; // = 0
+} numBlades;
+
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
 }
@@ -43,14 +74,148 @@ bool inBounds(float value, float bounds) {
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
+		numBlades.vertexCount = 0;
 	}
 	barrier(); // Wait till all threads reach this point
 
-    // TODO: Apply forces on every blade and update the vertices in the buffer
+	// TODO: push constant???
+	if (gl_GlobalInvocationID.x >= pushConstants.numBlades) {
+		return;
+	}
 
+    // TODO: Apply forces on every blade and update the vertices in the buffer
+	Blade blade = inputBlades[gl_GlobalInvocationID.x];
+
+	// extract things stored in Ws
+	float orientation = blade.v0.w;
+	float height = blade.v1.w;
+	float width = blade.v2.w;
+	float stiffness = blade.up.w;
+
+	// recovery force =========================================================
+	// compute "initial position"
+	// go up from base (v0)
+	vec3 initialV2 = blade.v0.xyz + blade.up.xyz * height;
+	vec3 recovery = (initialV2 - blade.v2.xyz) * stiffness;
+
+	// gravity ================================================================
+	// environmental gravity
+	// hardcoded
+	vec3 gEnv = vec3(0.0, -1.0, 0.0);
+
+	// front direction for front gravity
+	vec3 front = vec3(cos(orientation), 0.0, sin(orientation));
+	vec3 gFront = 0.25 * length(gEnv) * front;
+
+	vec3 gravity = gEnv + gFront;
+
+	// wind ===================================================================
+	// hardcode for now
+	// "raw" because it is not the final wind "force"
+	// btw, these aren't really forces, are they. they are velocities. they aren't accelerating anything and ignore mass.
+#if WIND_TYPE == WIND_X
+	vec3 windRaw = vec3(1.0, 0.0, 0.0) * (sin(totalTime) + 1.0) * 200.0;
+#elif WIND_TYPE == WIND_RADIAL
+	vec3 windRaw = normalize(blade.v0.xyz) * (sin(totalTime * 5.0f + length(blade.v0.xyz)) + 1.0) * 200.0;
+#endif
+	float windDirectionalAlignment = 1.0 - abs(dot(normalize(windRaw), normalize(blade.v2.xyz - blade.v0.xyz)));
+	float windHeightRatio = dot(blade.v2.xyz - blade.v0.xyz, blade.up.xyz) / height;
+	float windAlignment = windDirectionalAlignment * windHeightRatio;
+
+	vec3 wind = windRaw * windAlignment;
+
+	// reaction ===============================================================
+	vec3 reaction = (recovery + gravity + wind) * deltaTime;
+
+	// "candidate" v2 -- validate before storing in blade
+	vec3 candidateV2 = blade.v2.xyz + reaction;
+
+	// validate v2 ============================================================
+	candidateV2 = candidateV2 - blade.up.xyz * min(dot(blade.up.xyz, candidateV2 - blade.v0.xyz), 0.0);
+
+	// compute V1 =============================================================
+	float projectedLength = length(candidateV2 - blade.v0.xyz - blade.up.xyz * dot(candidateV2 - blade.v0.xyz, blade.up.xyz));
+	vec3 candidateV1 = blade.v0.xyz + height * blade.up.xyz * max(1.0 - projectedLength / height,
+	                                                              0.05 * max(projectedLength / height, 1.0));
+
+	// validate V1 ============================================================
+	// formula 12 for n = 2
+	float bezierLength = (2.0 * distance(candidateV2, blade.v0.xyz) + distance(candidateV1, blade.v0.xyz) + distance(candidateV2, candidateV1)) / 3.0;
+	float heightLengthRatio = height / bezierLength;
+	
+	// write corrected values to blade
+	blade.v1.xyz = blade.v0.xyz + heightLengthRatio * (candidateV1 - blade.v0.xyz);
+	blade.v2.xyz = blade.v1.xyz + heightLengthRatio * (candidateV2 - candidateV1);
+	//blade.v2.xyz += vec3(sin(totalTime), 0.0, cos(totalTime));
+	//blade.v2.xyz = candidateV2;
+
+	// set custom color =======================================================
+	wind = abs(wind);
+	blade.color.xyz = wind * WIND_TO_COLOR_FACTOR * 0.8 + vec3(0.2);
+
+	// store updated blade ====================================================
+	inputBlades[gl_GlobalInvocationID.x] = blade;
+	
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
+	// use atomicAdd
+
+	// orientation culling ====================================================
+	mat4 inverseView = inverse(camera.view);
+	
+	vec3 viewDir = normalize(vec3(inverseView * vec4(0.0, 0.0, 1.0, 0.0)));
+	// if viewDir and front are roughly perpendicular, cull
+	if (abs(dot(viewDir, front)) <= 0.05) {
+		return;
+	}
+
+	// view frustum culling ===================================================
+	vec3 midpoint = 0.25 * blade.v0.xyz + 0.5 * blade.v1.xyz + 0.25 * blade.v2.xyz;
+	
+	mat4 viewProj = camera.proj * camera.view;
+	
+	// test V0
+	const float frustumTolerance = 0.05;
+	vec4 projPoint = viewProj * vec4(blade.v0.xyz, 1.0);
+	float frustumLimit = projPoint.w + frustumTolerance;
+
+	if (!inBounds(projPoint.x, frustumLimit) && !inBounds(projPoint.y, frustumLimit)) {
+		// test midpoint
+		projPoint = viewProj * vec4(midpoint, 1.0);
+		frustumLimit = projPoint.w + frustumTolerance;
+
+		if (!inBounds(projPoint.x, frustumLimit) && !inBounds(projPoint.y, frustumLimit)) {
+			// test V2
+			projPoint = viewProj * vec4(blade.v2.xyz, 1.0);
+			frustumLimit = projPoint.w + frustumTolerance;
+
+			// V0, midpoint, V2 are all outside frustum: cull
+			if (!inBounds(projPoint.x, frustumLimit) && !inBounds(projPoint.y, frustumLimit)) {
+				return;
+			}
+		}
+	}
+
+	// distance culling =======================================================
+	vec3 cameraEye = vec3(inverseView[3]);//-1.0 * vec3(camera.view * vec4(0.0, 0.0, 0.0, 1.0));
+	vec3 eyeToBlade = blade.v0.xyz - cameraEye;
+	float projDistance = length(eyeToBlade - blade.up.xyz * dot(eyeToBlade, blade.up.xyz));
+	// cull if too far
+	if (projDistance > MAX_DISTANCE) {
+		return;
+	}
+	int indexMod = int(gl_GlobalInvocationID.x % DISTANCE_BUCKETS);
+	int cullability = int(floor(float(DISTANCE_BUCKETS) * (1.0 - projDistance / MAX_DISTANCE)));
+	if (indexMod > cullability) {
+		return; // cull
+	}
+	//blade.v0.x += 1.0 * sin(totalTime);// + 3.14159265 * 0.5);
+	//blade.v0.z += 1.0 * cos(totalTime);
+	
+	uint idx = atomicAdd(numBlades.vertexCount, 1);
+	culledBlades[idx] = blade; //inputBlades[gl_GlobalInvocationID.x];
+	
+
 }
