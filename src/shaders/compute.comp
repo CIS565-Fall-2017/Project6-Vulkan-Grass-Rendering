@@ -14,6 +14,7 @@ layout(set = 1, binding = 0) uniform Time {
     float totalTime;
 };
 
+// A blase of grass stores
 struct Blade {
     vec4 v0;
     vec4 v1;
@@ -28,13 +29,24 @@ struct Blade {
 
 // The project is using vkCmdDrawIndirect to use a buffer as the arguments for a draw call
 // This is sort of an advanced feature so we've showed you what this buffer should look like
-//
-// layout(set = ???, binding = ???) buffer NumBlades {
-// 	  uint vertexCount;   // Write the number of blades remaining here
-// 	  uint instanceCount; // = 1
-// 	  uint firstVertex;   // = 0
-// 	  uint firstInstance; // = 0
-// } numBlades;
+
+// 1. Store the input blades.
+layout(set = 2, binding = 0) buffer AllGrass {
+ 	  Blade allGrass[];
+};
+
+// 2. Write out the culled blades.
+layout(set = 2, binding = 1) buffer CulledGrass {
+ 	  Blade culledGrass[];
+};
+
+// 3. Write the total number of blades remaining.
+layout(set = 2, binding = 2) buffer NumBlades {
+ 	  uint vertexCount;   // Write the number of blades remaining here
+ 	  uint instanceCount; // = 1
+ 	  uint firstVertex;   // = 0
+ 	  uint firstInstance; // = 0
+} numBlades;
 
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
@@ -43,14 +55,181 @@ bool inBounds(float value, float bounds) {
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
+		numBlades.vertexCount = 0;
 	}
 	barrier(); // Wait till all threads reach this point
 
     // TODO: Apply forces on every blade and update the vertices in the buffer
+	// Retrieve a blade of grass.
+	uint index = gl_GlobalInvocationID.x;
+	Blade grass = allGrass[index];
+
+	// Get vector information from the blade of grass.
+	vec3 v0 = grass.v0.xyz;
+	vec3 v1 = grass.v1.xyz;
+	vec3 v2 = grass.v2.xyz;
+	vec3 up = grass.up.xyz;
+	
+	// Get further grass attributes.
+	float angle  = grass.v0.w;
+	float height = grass.v1.w;
+	float width  = grass.v2.w;
+	float stiff  = grass.up.w;
+
+	// Find the direction of this blade of grass.
+	float angleX = cos(angle);
+	float angleY = sin(angle);
+	vec3 rotation = vec3(angleX, 0, angleY);
+	vec3 direction = normalize(cross(up, rotation));
+
+	// Natural Forces.
+	// Calculate recovery.
+	vec3 initialPose = v0 + (up * height);
+	vec3 recovery = (initialPose - v2) * stiff;
+
+	// Calculate gravity.
+	float GRAVITY_STRENGTH = 10.0;
+	vec3 gE = vec3(0, -GRAVITY_STRENGTH, 0);
+	vec3 gF = (GRAVITY_STRENGTH * direction * 0.25);
+	vec3 gravity = (gE + gF);
+
+	// Calculate wind.
+	float WIND_STRENGTH_X = sin(totalTime) * 15;
+	float WIND_STRENGTH_Y = 0;
+	float WIND_STRENGTH_Z = mod(totalTime, 10);
+	vec3 windDirection = normalize(vec3(WIND_STRENGTH_X, 
+		WIND_STRENGTH_Y, WIND_STRENGTH_Z));
+	float orientationStrength = dot(windDirection, normalize(v2 - v0));
+	float directionalAlignment = 1 - abs(orientationStrength);
+	float heightRatio = dot((v2 - v0), up) / height;
+	float windAlignment = directionalAlignment * heightRatio;
+	windDirection.x = WIND_STRENGTH_X;
+	windDirection.y = WIND_STRENGTH_Y;
+	windDirection.z = WIND_STRENGTH_Z;
+	vec3 wind = windDirection * windAlignment;
+
+	// Total force and translation; move v1 and v2.
+	vec3 totalForce = (recovery + gravity + wind) * deltaTime;
+
+	// Make sure v2 is above the ground.
+	v2 = (v2 + totalForce);
+	float clipFactor = dot(up, (v2 - v0));
+	v2 = v2 - (up * min(clipFactor, 0.0));
+
+	// Constrain v1 to always be above v0.
+	vec3 projection = v2 - v0 - (up * dot((v2 - v0), up));
+	float lProj = sqrt(projection.x * projection.x 
+		+ projection.y * projection.y 
+		+ projection.z * projection.z);
+	float curvature = 0.05;
+	float curveFactor = max(1 - (lProj / height), curvature * max((lProj / height), 1));
+	v1 = v0 + (height * up * curveFactor);
+
+	// Constrain the length of this blade of grass.
+	vec3 leg20 = (v2 - v0);
+	vec3 leg21 = (v2 - v1);
+	vec3 leg10 = (v1 - v0);
+	float distance20 = sqrt(leg20.x * leg20.x + leg20.y * leg20.y + leg20.z * leg20.z);
+	float distance21 = sqrt(leg21.x * leg21.x + leg21.y * leg21.y + leg21.z * leg21.z);
+	float distance10 = sqrt(leg10.x * leg10.x + leg10.y * leg10.y + leg10.z * leg10.z);
+	float L0 = distance20;
+	float L1 = (distance21 + distance10);
+	float L = (2 * L0 + L1) / 3;
+	float r = (height / L);
+	grass.v1.xyz = v0 + r * (v1 - v0);
+	grass.v2.xyz = grass.v1.xyz + r * (v2 - v1);
+
+	// Optional fun setting where grass grows over time.
+	// float growthRate = 0.1;
+	// grass.v1.w = (height + growthRate * deltaTime);
+
+	// Track this blade of grass for the next update.
+	allGrass[index] = grass;
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
+	// Orientation test.
+	bool ORIENTATION_ENABLED = true;
+	float ORIENTATION_THRESHOLD = 0.1;
+	
+	// If the orientation test is enabled, don't render grass within some angle threshold down camera z.
+	if (ORIENTATION_ENABLED) {
+		mat4 cameraInverse = inverse(camera.view);
+		vec4 cameraZ = normalize(cameraInverse * vec4(0, 0, 1, 0));
+		if (abs(dot(cameraZ.xyz, direction)) < ORIENTATION_THRESHOLD) {
+			return;
+		}
+	}
+
+	// View-frustum test.
+	bool FRUSTUM_ENABLED = true;
+	float FRUSTUM_TOLERANCE = 0.09;
+
+	// Project the test points to normalized device coordinates before comparison.
+	if (FRUSTUM_ENABLED) {
+		mat4 viewProjection = (camera.proj * camera.view);
+		vec4 v0_ndc = viewProjection * vec4(v0, 1);
+		vec4 v2_ndc = viewProjection * vec4(v2, 1);
+
+		// Find midpoint of the curve m.
+		vec3 m = (0.25 * v0) + (0.25 * v1) + (0.25 * v2);
+		vec4 m_ndc = viewProjection * vec4(m, 1);
+
+		// Check if all points are out of bounds;
+		bool v0_bounds = (inBounds(v0_ndc.x, v0_ndc.w + FRUSTUM_TOLERANCE) 
+			&& inBounds(v0_ndc.y, v0_ndc.w + FRUSTUM_TOLERANCE) 
+			&& inBounds(v0_ndc.z, v0_ndc.w + FRUSTUM_TOLERANCE));
+		bool v2_bounds = (inBounds(v2_ndc.x, v2_ndc.w + FRUSTUM_TOLERANCE) 
+			&& inBounds(v2_ndc.y, v2_ndc.w + FRUSTUM_TOLERANCE) 
+			&& inBounds(v2_ndc.z, v2_ndc.w + FRUSTUM_TOLERANCE));
+		bool m_bounds = (inBounds(m_ndc.x, m_ndc.w + FRUSTUM_TOLERANCE) 
+			&& inBounds(m_ndc.y, m_ndc.w + FRUSTUM_TOLERANCE) 
+			&& inBounds(m_ndc.z, m_ndc.w + FRUSTUM_TOLERANCE));
+
+		// Cull if all points on the blade are out of bounds.
+		if (!v0_bounds && !v2_bounds && !m_bounds) {
+			return;
+		}
+	}
+
+	// Distance test.
+	bool DISTANCE_ENABLED = true;
+	float MAX_DISTANCE = 150.0;
+	int NUM_BUCKETS = 15;
+
+	// Progressively remove blades with bucket-distance from the camera.
+	if (DISTANCE_ENABLED) {
+		mat4 cameraInverse = inverse(camera.view);
+		vec3 cameraZ = normalize(cameraInverse * vec4(0, 0, 0, 1)).xyz;
+		vec3 distanceProjection = v0 - cameraZ - up * dot((v0 - cameraZ), up);
+		float projectedDistance = sqrt(distanceProjection.x * distanceProjection.x
+			+ distanceProjection.y * distanceProjection.y 
+			+ distanceProjection.z * distanceProjection.z);
+
+		// Remove blades of grass beyond the maximum distance.
+		if (projectedDistance > MAX_DISTANCE) {
+			return;
+		}
+
+		// Create buckets for blades of grass within the distance limit.
+		float bucketSize = MAX_DISTANCE / NUM_BUCKETS;
+
+		// Find what bucket this blade of grass belongs to.
+		int bucket = int(floor(projectedDistance / bucketSize));
+
+		// Probabilistically remove some number of blades based on their bucket.
+		// I am copying this pseudo-random noise from the answer by "appas" here:
+		// https://stackoverflow.com/questions/4200224/random-noise-functions-for-glsl
+		float rand = fract(sin(dot(vec2(bucket, projectedDistance), 
+			vec2(12.9898, 78.233))) * 43758.5453);
+		if (rand > (1.0 - (1.0 * bucket / NUM_BUCKETS))) {
+			return;
+		}
+	}
+
+	// This blade of grass was not culled and should be rendered.
+	uint atomicIndex = atomicAdd(numBlades.vertexCount, 1);
+	culledGrass[atomicIndex] = grass;
 }

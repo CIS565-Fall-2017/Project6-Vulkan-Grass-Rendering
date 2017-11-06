@@ -63,6 +63,14 @@ private:
     std::vector<VkDescriptorSet> modelDescriptorSets;
     VkDescriptorSet timeDescriptorSet;
 
+	// Copying logic from "modelDescriptorSets" to add a new set 
+	// of descriptors for the grass blades.
+	std::vector<VkDescriptorSet> grassDescriptorSets;
+
+	// Do the same for the compute layout TODO item.
+	VkDescriptorSetLayout computeDescriptorSetLayout;
+	std::vector<VkDescriptorSet> computeDescriptorSets;
+
     VkPipelineLayout graphicsPipelineLayout;
     VkPipelineLayout grassPipelineLayout;
     VkPipelineLayout computePipelineLayout;

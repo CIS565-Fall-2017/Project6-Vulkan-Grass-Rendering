@@ -6,6 +6,8 @@
 #include "Scene.h"
 #include "Image.h"
 
+#include <iostream>
+
 Device* device;
 SwapChain* swapChain;
 Renderer* renderer;
@@ -116,7 +118,7 @@ int main() {
         grassImageMemory
     );
 
-    float planeDim = 15.f;
+    float planeDim = 150.f;
     float halfWidth = planeDim * 0.5f;
     Model* plane = new Model(device, transferCommandPool,
         {
@@ -143,10 +145,23 @@ int main() {
     glfwSetMouseButtonCallback(GetGLFWWindow(), mouseDownCallback);
     glfwSetCursorPosCallback(GetGLFWWindow(), mouseMoveCallback);
 
+	// Found the chrono example code here http://en.cppreference.com/w/cpp/chrono
+	auto startRun = std::chrono::system_clock::now();
+	int frameCount = 0;
     while (!ShouldQuit()) {
         glfwPollEvents();
         scene->UpdateTime();
+
+		// Track and output the average frame time over the last 1000 frames.
         renderer->Frame();
+		frameCount++;
+		if (frameCount % 1000 == 0) {
+			auto endRun = std::chrono::system_clock::now();
+			std::chrono::duration<double> elapsed_seconds = endRun - startRun;
+			std::cout << "Average frame time: " 
+				<< (elapsed_seconds.count()) << "ms\n";
+			startRun = std::chrono::system_clock::now();
+		}
     }
 
     vkDeviceWaitIdle(device->GetVkDevice());
