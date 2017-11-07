@@ -31,16 +31,19 @@ void main() {
 	outUP = inUP[gl_InvocationID];
 
 	// LOD
-
+	float Z = -(camera.view * vec4(inV0[gl_InvocationID].xyz, 1.0)).z;
+	float exp = pow(2, Z + 3);
+	float h = min(1.0, exp);
+	float v = max(4.0, exp);
 
 	// TODO: Set level of tesselation 
 	// Horizontal tesselation
-	gl_TessLevelInner[0] = 1.0;
-	gl_TessLevelOuter[1] = 1.0;
-	gl_TessLevelOuter[3] = 1.0;
+	gl_TessLevelInner[0] = h;
+	gl_TessLevelOuter[1] = h;
+	gl_TessLevelOuter[3] = h;
     
 	// Vertical tesselation
-	gl_TessLevelInner[1] = 4.0;
-    gl_TessLevelOuter[0] = 4.0;
-    gl_TessLevelOuter[2] = 4.0;
+	gl_TessLevelInner[1] = v;
+    gl_TessLevelOuter[0] = v;
+    gl_TessLevelOuter[2] = v;
 }
