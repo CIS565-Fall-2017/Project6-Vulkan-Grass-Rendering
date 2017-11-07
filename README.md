@@ -110,9 +110,9 @@ Below are some GIFs showcasing the wind functions implemented here, as well as t
 
 ### Methodology
 
-In order to measure the performance of this renderer, I re-purposed the `Scene::UpdateTime()` function to compute the average time spent to render one frame over 2000 frames.
+In order to measure the performance of this renderer, I re-purposed the `Scene::UpdateTime()` function to compute the average time spent to render one frame over 2000 frames. By default, measurements are not taken nor printed out, but can be enabled with `#define PRINT_AVG_DELTA 1` in `Scene.cpp`.
 
-Most of the measurements were taken by rendering the scene with the default camera position and orientation. For some view-frustum related tests, a special camera closer to the origin was used (see `FRUSTUM_CULL_TEST` in `Camera.cpp`). Unless this zoomed-in camera is mentioned, a test was performed using the default camera.
+Most of the measurements were taken by rendering the scene with the default camera position and orientation. For some view-frustum related tests, a special camera closer to the origin was used (see `FRUSTUM_CULL_TEST` in `Camera.cpp`). Unless this zoomed-in camera is mentioned, the test was performed using the default camera.
 
 The analyses below generally compare the average time to render a frame as the number of blades increases and as certain optimizations are enabled or disabled.
 
