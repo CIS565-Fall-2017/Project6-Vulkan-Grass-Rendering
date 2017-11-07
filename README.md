@@ -11,8 +11,12 @@ Vulkan Grass Rendering
 *DO NOT* leave the README to the last minute! It is a crucial part of the
 project, and we will not be able to grade you without a good README.
 
+## Video Demo:
+
+[Demo Link](https://youtu.be/u7HdO0uZ2Io)
 
 ### 1. Grass Rendering 
+
 
 #### Basic Feature (Without movement)
 
@@ -37,6 +41,7 @@ There is a little bit "earthquake" in the result, I think it is because of the g
 
 Here is a performance analysis graph that demonstrate the processing time of each time step:
 
+![enter image description here](https://lh3.googleusercontent.com/-TRp2yTn4eWQ/WgI_4N4T00I/AAAAAAAABPQ/PCX2EayFzII_2kc7TrAzf5B9mNUrGYsJwCLcBGAs/s0/Performance.jpg "Performance.jpg")
 
 
-As you can see from the graph, there result is
+As you can see from the graph, in each while loop, the processing time is super fast, except the first circle. In my opinion, the first cycle functions as the first time to read the glsl shader into the program, and maybe that would explain why it is rather slow in the first loop. Anyway the result turns to be real-time enough to fulfill the acceleration result. 
