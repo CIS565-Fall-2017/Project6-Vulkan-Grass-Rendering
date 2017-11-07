@@ -5,6 +5,7 @@
 #include "Camera.h"
 #include "Scene.h"
 #include "Image.h"
+#include <iostream>
 
 Device* device;
 SwapChain* swapChain;
@@ -146,7 +147,11 @@ int main() {
     while (!ShouldQuit()) {
         glfwPollEvents();
         scene->UpdateTime();
+		//clock_t begin = clock();
         renderer->Frame();
+		//clock_t end = clock();
+		//double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+		//std::cout << "time lapse for last frame: " << elapsed_secs << std::endl;
     }
 
     vkDeviceWaitIdle(device->GetVkDevice());
