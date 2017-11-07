@@ -5,6 +5,7 @@
 #include "Camera.h"
 #include "Scene.h"
 #include "Image.h"
+#include <iostream>
 
 Device* device;
 SwapChain* swapChain;
@@ -144,11 +145,21 @@ int main() {
     glfwSetMouseButtonCallback(GetGLFWWindow(), mouseDownCallback);
     glfwSetCursorPosCallback(GetGLFWWindow(), mouseMoveCallback);
 
+	FILE * pFile;
+	pFile = fopen("performance.txt", "w");
+	double timebase = 0;
+
     while (!ShouldQuit()) {
         glfwPollEvents();
+		double time = glfwGetTime();
         scene->UpdateTime();
         renderer->Frame();
+		
+		float timestep = time - timebase;
+		fprintf(pFile, "%f\n", timestep);
+		timebase = time;
     }
+	fclose(pFile);
 
     vkDeviceWaitIdle(device->GetVkDevice());
 

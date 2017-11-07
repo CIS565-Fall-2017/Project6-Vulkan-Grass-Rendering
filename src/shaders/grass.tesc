@@ -9,15 +9,15 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 } camera;
 
 // TODO: Declare tessellation control shader inputs and outputs
-layout(location = 0) in vec4 tescIn_v0[];
-layout(location = 1) in vec4 tescIn_v1[];
-layout(location = 2) in vec4 tescIn_v2[];
-layout(location = 3) in vec4 tescIn_Up[];
+layout(location = 0) in vec4 tescIn_v1[];
+layout(location = 1) in vec4 tescIn_v2[];
+layout(location = 2) in vec4 tescIn_Up[];
+layout(location = 3) in vec3 tescIn_Side[];//normalized 
 
-layout(location = 0) out vec4 teseIn_v0[];
-layout(location = 1) out vec4 teseIn_v1[];
-layout(location = 2) out vec4 teseIn_v2[];
-layout(location = 3) out vec4 teseIn_Up[];
+layout(location = 0) out vec4 teseIn_v1[];
+layout(location = 1) out vec4 teseIn_v2[];
+layout(location = 2) out vec4 teseIn_Up[];
+layout(location = 3) out vec3 teseIn_Side[];
 
 
 void main() {
@@ -25,10 +25,10 @@ void main() {
     gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
 
 	// TODO: Write any shader output
-	teseIn_v0[gl_InvocationID] = tescIn_v0[gl_InvocationID];
 	teseIn_v1[gl_InvocationID] = tescIn_v1[gl_InvocationID];
 	teseIn_v2[gl_InvocationID] = tescIn_v2[gl_InvocationID];
-    teseIn_Up[gl_InvocationID] = tescIn_Up[gl_InvocationID];
+	teseIn_Up[gl_InvocationID] = tescIn_Up[gl_InvocationID];
+    teseIn_Side[gl_InvocationID] = tescIn_Side[gl_InvocationID];
 
 	// TODO: Set level of tesselation
      gl_TessLevelInner[0] = 1.0;

@@ -14,8 +14,8 @@ layout (location = 3) in vec4 up;
 
 layout(location = 0) out vec4 tescIn_v1;
 layout(location = 1) out vec4 tescIn_v2;
-layout(location = 2) out vec3 tescIn_Up;
-layout(location = 3) out vec3 tescIn_Face;//normalized 
+layout(location = 2) out vec4 tescIn_Up;
+layout(location = 3) out vec3 tescIn_Side;//normalized 
 
 out gl_PerVertex {
     vec4 gl_Position;
@@ -32,7 +32,7 @@ void main() {
 
 	tescIn_v1 = model * vec4(v1.xyz,1.0);
 	tescIn_v2 = model * vec4(v2.xyz,1.0);
-	tescIn_Up = vec3(model * vec4(up.xyz,0.0));
+	tescIn_Up = model * vec4(up.xyz,0.0);
 
 	float cosTheta = cos(direction);
 	float sinTheta = sin(direction);
@@ -41,11 +41,12 @@ void main() {
 	float leftPointZDis = width*0.5*sinTheta;
 
 	vec3 leftPoint = groundPos + vec3(leftPointXDis,0.0,-leftPointZDis);
+	tescIn_Up.w = width;
 
 	vec3 groundDir = leftPoint - groundPos;
 
-	vec3 face = cross(groundDir,tescIn_Up);
-	tescIn_Face = normalize(face);
+	//vec3 face = cross(groundDir,up.xyz);
+	tescIn_Side = normalize(groundDir);
 
 	gl_Position = model * vec4(v0.x,v0.y,v0.z,1.0);
 }
