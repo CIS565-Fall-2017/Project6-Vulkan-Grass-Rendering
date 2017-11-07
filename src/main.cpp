@@ -5,6 +5,9 @@
 #include "Camera.h"
 #include "Scene.h"
 #include "Image.h"
+#include <WinBase.h>
+#include <ctime>
+using namespace std;
 
 Device* device;
 SwapChain* swapChain;
@@ -142,11 +145,15 @@ int main() {
     glfwSetWindowSizeCallback(GetGLFWWindow(), resizeCallback);
     glfwSetMouseButtonCallback(GetGLFWWindow(), mouseDownCallback);
     glfwSetCursorPosCallback(GetGLFWWindow(), mouseMoveCallback);
-
+	DWORD t1, t2;
+	t1 = GetTickCount();
     while (!ShouldQuit()) {
         glfwPollEvents();
         scene->UpdateTime();
+		t1 = GetTickCount();
         renderer->Frame();
+		t2 = GetTickCount();
+		printf("Use Time:%f\n", (t2 - t1)*1.0);
     }
 
     vkDeviceWaitIdle(device->GetVkDevice());
