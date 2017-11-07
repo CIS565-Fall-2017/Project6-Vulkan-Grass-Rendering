@@ -20,6 +20,10 @@ project, and we will not be able to grade you without a good README.
 
 #### Gravity and Wind
 
+There is a little bit "earthquake" in the result, I think it is because of the gravity value.
+
+![enter image description here](https://lh3.googleusercontent.com/--3xXRCZjwrY/WgIwTRI6-XI/AAAAAAAABOk/-6fGl0n8_RccadaHWu0LQLLwTMhNDpLFACLcBGAs/s0/resultNoCullingReduced.gif "resultNoCullingReduced.gif")
+
 #### Culling
 
 ### 2 Performance Analysis
