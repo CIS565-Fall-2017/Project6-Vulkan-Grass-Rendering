@@ -26,4 +26,17 @@ There is a little bit "earthquake" in the result, I think it is because of the g
 
 #### Culling
 
+ - Orientation Culling
+ - View Frustum Culling
+ - Distance Culling
+ 
+ 
+ ![enter image description here](https://lh3.googleusercontent.com/-vz9sCG2c2Pc/WgI-oNYC3NI/AAAAAAAABPA/9djbm-UxamkSnegvTBln3o1BImOHhfozwCLcBGAs/s0/resultReduced.gif "resultReduced.gif")
+
 ### 2 Performance Analysis
+
+Here is a performance analysis graph that demonstrate the processing time of each time step:
+
+
+
+As you can see from the graph, there result is
