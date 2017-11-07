@@ -1,7 +1,7 @@
 Vulkan Grass Rendering
 ======================
 
-### **University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 5**
+### **University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 6**
 
 * YAOYI BAI (pennkey: byaoyi)
 * Tested on: Windows 10 Professional, i7-6700HQ  @2.60GHz 16GB, GTX 980M 8253MB (My own Dell Alienware R3)
