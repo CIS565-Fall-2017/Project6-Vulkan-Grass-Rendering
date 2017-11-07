@@ -16,7 +16,7 @@ project, and we will not be able to grade you without a good README.
 
 #### Basic Feature (Without movement)
 
-![enter image description here](https://lh3.googleusercontent.com/-OM--CYcT4nU/WgEgcRNqZRI/AAAAAAAABNM/POvgiEtbNZg6lFkJy-lkQrUISFukxpMSwCLcBGAs/s0/resultNoMovement.gif "resultNoMovement.gif")
+![enter image description here](https://lh3.googleusercontent.com/-WAu7MQHZMRM/WgEm52zOoZI/AAAAAAAABNs/EUsl50Wq6PgJnclaywpppXrm_VmPqtUbwCLcBGAs/s0/resultNoMovementReduce.gif "resultNoMovementReduce.gif")
 
 #### Gravity and Wind
 
