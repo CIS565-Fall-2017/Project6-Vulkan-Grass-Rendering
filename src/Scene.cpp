@@ -26,7 +26,7 @@ void Scene::AddBlades(Blades* blades) {
 void Scene::UpdateTime() {
     high_resolution_clock::time_point currentTime = high_resolution_clock::now();
     duration<float> nextDeltaTime = duration_cast<duration<float>>(currentTime - startTime);
-    startTime = currentTime;
+    startTime = currentTime;	 
 
     time.deltaTime = nextDeltaTime.count();
     time.totalTime += time.deltaTime;
