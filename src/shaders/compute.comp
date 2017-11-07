@@ -38,11 +38,11 @@ layout(set = 2, binding = 2) buffer NumBlades {
 
 layout(set = 2, binding = 1) buffer BladesIn {
 	  Blade[] blades;
-} bladesIn;
+} blades;
 
 layout(set = 2, binding = 0) buffer BladesOut {
 	  Blade[] blades;
-} bladesOut;
+} culledBlades;
 
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
@@ -59,26 +59,24 @@ void main() {
     
     // Recovery Force
     // Initial pose of V2 is v0 + up * height
-    const Blade currentBladeIn = bladesIn.blades[gl_GlobalInvocationID.x];
+    const Blade currentBladeIn = blades.blades[gl_GlobalInvocationID.x];
     vec3 I_V2 = currentBladeIn.v0.xyz + currentBladeIn.up.xyz * currentBladeIn.v1.w;
     const vec3 recoveryForce = (I_V2 - currentBladeIn.v2.xyz) * currentBladeIn.up.w;
-    //const vec3 recoveryForce = vec3(0.0);
 
     // Gravity
-    const vec3 gravityDir = normalize(-currentBladeIn.up.xyz);
+    const vec3 gravityDir = vec3(0, 1, 0);
     const float gravityAccel = 9.8;
     const vec3 gravityForceE = gravityAccel * gravityDir;
     const vec3 forwardDir = normalize(vec3(cos(currentBladeIn.v0.w), 0, sin(currentBladeIn.v0.w)));
     const vec3 gravityForceF = length(gravityForceE) * forwardDir * 0.25;
-    //const vec3 gravityForceTotal = gravityForceE + gravityForceF;
-    const vec3 gravityForceTotal = vec3(0.0);
+    const vec3 gravityForceTotal = gravityForceE + gravityForceF;
+    //const vec3 gravityForceTotal = vec3(0.0);
 
     // Wind
-    const vec3 windDir = vec3(cos(totalTime * 0.25 + currentBladeIn.v0.x * currentBladeIn.v2.z), 0.0, sin(totalTime - currentBladeIn.v0.z * 0.25)) * 2.5;
+    const vec3 windDir = vec3(cos(totalTime * 0.25 + currentBladeIn.v2.x * 0.25 + length(currentBladeIn.v2.z * 0.25 + totalTime * 0.25)), 0.0, sin(totalTime - currentBladeIn.v2.z * 0.25)) * 1.5;
     const float directionalAlignment = 1.0 - length(windDir - normalize(currentBladeIn.v2.xyz - currentBladeIn.v0.xyz));
     const float heightRatio = dot((currentBladeIn.v2.xyz - currentBladeIn.v0.xyz), currentBladeIn.up.xyz) / currentBladeIn.v1.w;
     const vec3 windForce = heightRatio * directionalAlignment * windDir;
-    //const vec3 windForce = vec3(0.0);
 
     vec3 totalForce = recoveryForce + gravityForceTotal + windForce;
     totalForce *= deltaTime;
@@ -119,13 +117,51 @@ void main() {
 
     bool shouldCull = false;
     
-    // cull stuff
+    // Orientation culling
+    vec3 widthDir = normalize(vec3(cos(currentBladeIn.v0.w + 1.57079632679), 0, sin(currentBladeIn.v0.w + 1.57079632679))); // that's PI / 2
+    widthDir = normalize((camera.view * vec4(widthDir, 0)).xyz);
+    if(abs(widthDir.z) < 0.2) { // effectively dot w/ (0, 0, 1)
+        shouldCull = true;
+    }
+
+    // Frustum culling on v0, v2 and m
+    const vec3 m = 0.25 * bladeOut.v0.xyz + 0.5 * bladeOut.v1.xyz + 0.25 * bladeOut.v2.xyz;
+    // check if v0, v1, and m are all outside the frustum.
+
+    const vec4 p_prime_0 = camera.proj * camera.view * vec4(bladeOut.v0.xyz, 1.0);
+    const vec4 p_prime_m = camera.proj * camera.view * vec4(m, 1.0);
+    const vec4 p_prime_2 = camera.proj * camera.view * vec4(bladeOut.v2.xyz, 1.0);
+
+    const float tolerance = 0.01;
+    const vec3 h = vec3(p_prime_0.w, p_prime_m.w, p_prime_2.w) + tolerance;
+
+    if(p_prime_0.x > -h.x && p_prime_0.y > -h.x && p_prime_0.z > -h.x &&
+       p_prime_0.x < h.x && p_prime_0.y < h.x && p_prime_0.z < h.x) {
+       shouldCull = true;
+    }
+
+    if(p_prime_m.x > -h.y && p_prime_m.y > -h.y && p_prime_m.z > -h.y &&
+       p_prime_m.x < h.y && p_prime_m.y < h.y && p_prime_m.z < h.y) {
+       shouldCull = true;
+    }
+
+    if(p_prime_2.x > -h.y && p_prime_2.y > -h.y && p_prime_2.z > -h.y &&
+       p_prime_2.x < h.y && p_prime_2.y < h.y && p_prime_2.z < h.y) {
+       shouldCull = true;
+    }
+
+    // Distance culling
+    const float dMax = 10.0; // After this point, all blades are culled
+    const vec3 cameraPos = (inverse(camera.view) * vec4(0, 0, 0, 1)).xyz;
+    const float dProj = length(bladeOut.v0.xyz - cameraPos - bladeOut.up.xyz * (dot(bladeOut.v0.xyz - cameraPos, bladeOut.up.xyz)));
+    const float bucket = floor((camera.view * vec4(bladeOut.v0.xyz, 1.0)).z / dMax);
+    shouldCull = mod(gl_GlobalInvocationID.x, bucket) < floor(bucket * (1.0 - dProj / dMax));
 
     if(!shouldCull) {
         // Increment num blades
         atomicAdd(numBlades.vertexCount, 1);
+        culledBlades.blades[gl_GlobalInvocationID.x] = bladeOut;
     }
 
-    bladesOut.blades[gl_GlobalInvocationID.x] = bladeOut;
-    bladesIn.blades[gl_GlobalInvocationID.x] = bladeOut;
+    blades.blades[gl_GlobalInvocationID.x] = bladeOut;
 }
