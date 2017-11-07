@@ -74,7 +74,7 @@ Below are some of the main changes made to the base code (mostly related to Vulk
 The wind functions are named after the macro that enables them in `shaders/compute.comp`. Some of these are shown in "Example GIFs" below.
 
 * `WIND_X`: Periodic wind in the X direction.
-* `WIND_Y`: Periodic wind mostly in the Y direction. A wind exactly in the Y direction will not move the blades due to the way `v2` is computed._
+* `WIND_Y`: Periodic wind mostly in the Y direction. A wind exactly in the Y direction will not move the blades due to the way `v2` is computed.
 * `WIND_Z`: Periodic wind in the Z direction.
 * `WIND_RADIAL`: Periodic wind that emanates outwards from the origin, creating circular waves.
 * `WIND_CIRCLE`: Wind that moves around in a circular trajectory.
@@ -236,7 +236,7 @@ Although the distance-based culling is responsible for most of improvement in ru
 #define WIND_TEXT 7
 
 // WIND_TYPE defines which wind function will be used.
-// It should be one of the values defined immediately above._
+// It should be one of the values defined immediately above.
 #define WIND_TYPE WIND_XZ
 
 // Defines the radius of the circle moving around in the circular trajectory
