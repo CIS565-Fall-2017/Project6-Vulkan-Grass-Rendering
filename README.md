@@ -94,7 +94,7 @@ Here I used it to do 2 things as following:
 	}
   ```
   
-| **Distance Culling(`far_clip = 50`, 10 buckets)** |
+| **Distance Culling(`far_clip = 100`, 10 buckets)** |
 |---|
 |<img src="./results/distance_culled.gif" width="800" height="600">|
 
