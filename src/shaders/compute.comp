@@ -12,6 +12,7 @@
 #define WIND_CIRCLE 4
 #define WIND_XZ 5
 #define WIND_CONST 6
+#define WIND_TEXT 7
 
 #define WIND_TYPE WIND_XZ
 
@@ -83,6 +84,40 @@ layout(set = 2, binding = 2) buffer NumBlades {
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
 }
+
+#if WIND_TYPE == WIND_TEXT
+#define WIND_TEXT_MAX_DISTANCE 0.7
+// I derived this while waiting for food at Wawa. Hopefully it is good enough
+// segA : one end of line segment
+// segB : other end
+vec3 getWindFromLineSegment(vec3 p, vec3 segA, vec3 segB) {
+	vec3 pA = segA - p;
+	vec3 pB = segB - p;
+	vec3 AB = normalize(segB - segA);
+	float dotABpA = dot(AB, pA);
+	float dotABpB = dot(AB, pB);
+	// check if p's "projection" is on the line segment
+	if (sign(dotABpA) == sign(dotABpB)) {
+		// in this case, it is not, so return no wind
+		return vec3(0.0);
+	}
+	
+	// compute h, height of triangle defined by p, segA, segB, relative to p
+	// to do this, compute l, leg of right triangle defined by h, pA
+	//AB = normalize(AB);
+	// equivalent to: ||AB|| ||pA|| cos(x) * AB
+	//                   1   ||pA|| cos(x) * AB
+	//                       ||l||         * AB
+	vec3 l = dotABpA * AB; 
+	vec3 h = pA - l;
+	float dist = length(h);
+	if (dist > WIND_TEXT_MAX_DISTANCE) {
+		return vec3(0.0);
+	}
+	vec3 dir = -normalize(h);
+	return dir * (1.0 - dist / WIND_TEXT_MAX_DISTANCE);
+}
+#endif
 
 void main() {
 	// Reset the number of blades to 0
@@ -156,6 +191,28 @@ void main() {
 	vec3 windRaw = circleTangent * windStrength;
 #elif WIND_TYPE == WIND_CONST
 	vec3 windRaw = vec3(0.577350269, 0.577350269, -0.577350269) * 200.0;
+#elif WIND_TYPE == WIND_TEXT
+	// each call to getWindFromLineSegment() will draw one line segment
+	// draw left 5
+	vec3 windRaw = getWindFromLineSegment(blade.v0.xyz, vec3(-7.0, 0.0, -4.0), vec3(-3.0, 0.0, -4.0));
+	windRaw += getWindFromLineSegment(blade.v0.xyz, vec3(-7.0, 0.0, -4.0), vec3(-7.0, 0.0,  1.0));
+	windRaw += getWindFromLineSegment(blade.v0.xyz, vec3(-3.0, 0.0,  1.0), vec3(-7.0, 0.0,  1.0));
+	windRaw += getWindFromLineSegment(blade.v0.xyz, vec3(-3.0, 0.0,  1.0), vec3(-3.0, 0.0,  6.0));
+	windRaw += getWindFromLineSegment(blade.v0.xyz, vec3(-7.0, 0.0,  6.0), vec3(-3.0, 0.0,  6.0));
+	// draw 6
+	windRaw += getWindFromLineSegment(blade.v0.xyz, vec3(-2.0, 0.0, -4.0), vec3( 2.0, 0.0, -4.0));
+	windRaw += getWindFromLineSegment(blade.v0.xyz, vec3(-2.0, 0.0, -4.0), vec3(-2.0, 0.0,  1.0));
+	windRaw += getWindFromLineSegment(blade.v0.xyz, vec3( 2.0, 0.0,  1.0), vec3(-2.0, 0.0,  1.0));
+	windRaw += getWindFromLineSegment(blade.v0.xyz, vec3( 2.0, 0.0,  1.0), vec3( 2.0, 0.0,  6.0));
+	windRaw += getWindFromLineSegment(blade.v0.xyz, vec3(-2.0, 0.0,  6.0), vec3( 2.0, 0.0,  6.0));
+	windRaw += getWindFromLineSegment(blade.v0.xyz, vec3(-2.0, 0.0,  6.0), vec3(-2.0, 0.0,  1.0));
+	// draw right 5		
+	windRaw += getWindFromLineSegment(blade.v0.xyz, vec3( 3.0, 0.0, -4.0), vec3( 7.0, 0.0, -4.0));
+	windRaw += getWindFromLineSegment(blade.v0.xyz, vec3( 3.0, 0.0, -4.0), vec3( 3.0, 0.0,  1.0));
+	windRaw += getWindFromLineSegment(blade.v0.xyz, vec3( 7.0, 0.0,  1.0), vec3( 3.0, 0.0,  1.0));
+	windRaw += getWindFromLineSegment(blade.v0.xyz, vec3( 7.0, 0.0,  1.0), vec3( 7.0, 0.0,  6.0));
+	windRaw += getWindFromLineSegment(blade.v0.xyz, vec3( 3.0, 0.0,  6.0), vec3( 7.0, 0.0,  6.0));
+	windRaw *= 150.0 * pow((sin(totalTime) * 0.5 + 0.5001), 4.0);
 #endif
 	float windDirectionalAlignment = 1.0 - abs(dot(normalize(windRaw), normalize(blade.v2.xyz - blade.v0.xyz)));
 	float windHeightRatio = dot(blade.v2.xyz - blade.v0.xyz, blade.up.xyz) / height;

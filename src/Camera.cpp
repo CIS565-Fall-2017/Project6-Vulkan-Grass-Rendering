@@ -6,7 +6,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #define FRUSTUM_CULL_TEST 0
-#define WIND_GIF_CAMERA 1
+#define WIND_GIF_CAMERA 0
 
 #include "Camera.h"
 #include "BufferUtils.h"

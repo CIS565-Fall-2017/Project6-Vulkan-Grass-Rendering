@@ -79,43 +79,32 @@ The wind functions are named after the macro that enables them in `shaders/compu
 * `WIND_RADIAL`: Periodic wind that emanates outwards from the origin, creating circular waves.
 * `WIND_CIRCLE`: Wind that moves around in a circular trajectory.
 * `WIND_XZ`: Periodic wind in the X and Z directions. More complex than just a combination of `WIND_X` and `WIND_Z`!
-* `WIND_CONST`: Constant wind in the (1, 1, -1) direction._
+* `WIND_CONST`: Constant wind in the (1, 1, -1) direction.
+* `WIND_TEXT`: Periodic wind that draws mysterious text.
 
 ## Example GIFs
 
 Below are some GIFs showcasing the wind functions implemented here, as well as the two coloring modes. These were rendered using the camera enabled by `WIND_GIF_CAMERA` in `Camera.cpp`.
 
-`WIND_X`, Lambert mode:
+| `WIND_X`, Lambert mode     | `WIND_X`, "wind as color" mode |
+|:---------------------------:|:-------------------------------:|
+| ![](img/wind_x_lambert.gif) | ![](img/wind_x_wind.gif)        |
 
-![](img/wind_x_lambert.gif)
+| `WIND_RADIAL`, Lambert mode     | `WIND_RADIAL`, "wind as color" mode |
+|:--------------------------------:|:------------------------------------:|
+| ![](img/wind_radial_lambert.gif) | ![](img/wind_radial_wind.gif)        |
 
-`WIND_X`, "wind as color" mode:
+| `WIND_CIRCLE`, Lambert mode     | `WIND_CIRCLE`, "wind as color" mode |
+|:--------------------------------:|:------------------------------------:|
+| ![](img/wind_circle_lambert.gif) | ![](img/wind_circle_wind.gif)        |
 
-![](img/wind_x_wind.gif)
+| `WIND_XZ`, Lambert mode     | `WIND_XZ`, "wind as color" mode |
+|:----------------------------:|:--------------------------------:|
+| ![](img/wind_xz_lambert.gif) | ![](img/wind_xz_wind.gif)        |
 
-`WIND_RADIAL`, Lambert mode:
-
-![](img/wind_radial_lambert.gif)
-
-`WIND_RADIAL`, "wind as color" mode:
-
-![](img/wind_radial_wind.gif)
-
-`WIND_CIRCLE`, Lambert mode:
-
-![](img/wind_circle_lambert.gif)
-
-`WIND_CIRCLE`, "wind as color" mode:
-
-![](img/wind_circle_wind.gif)
-
-`WIND_XZ`, Lambert mode:
-
-![](img/wind_xz_lambert.gif)
-
-`WIND_XZ`, "wind as color" mode:
-
-![](img/wind_xz_wind.gif)
+| `WIND_TEXT`, Lambert mode     | `WIND_TEXT`, "wind as color" mode |
+|:------------------------------:|:----------------------------------:|
+| ![](img/wind_text_lambert.gif) | ![](img/wind_text_wind.gif)        |
 
 ## Analysis
 
@@ -211,6 +200,35 @@ As we can see, dynamic tessellation provides a small improvement to performance.
 
 * The GIF at the beginning of the README was rendered with `2^14` blades, "wind as color" mode enabled, and with radial wind enabled. 
 
+* There are several `#define`s in `shaders/compute.comp` to toggle certain features:
+```
+#define WIND_X 0
+#define WIND_Y 1
+#define WIND_Z 2
+#define WIND_RADIAL 3
+#define WIND_CIRCLE 4
+#define WIND_XZ 5
+#define WIND_CONST 6
+#define WIND_TEXT 7
+
+// WIND_TYPE defines which wind function will be used.
+// It should be one of the values defined immediately above._
+#define WIND_TYPE WIND_XZ
+
+// Defines the radius of the circle moving around in the circular trajectory
+// in WIND_CIRCLE.
+#define WIND_CIRCLE_RADIUS 5.0
+
+// If 0, uses Lambert shading and default green albedo.
+// Otherwise, uses wind as color.
+#define USE_CUSTOM_COLOR 1
+
+// Enable each culling method.
+#define ORIENTATION_CULL 1
+#define FRUSTUM_CULL 1
+#define DISTANCE_CULL 1
+```
+ 
 Instructions - Vulkan Grass Rendering
 ========================
 
