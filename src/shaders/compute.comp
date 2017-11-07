@@ -156,8 +156,8 @@ void main() {
 	bool distcull = mod(gl_GlobalInvocationID.x, n) > maxcullforbucket;
 
 	//add if not culled
-//	if(!(oricull || frustcull || distcull)) {
-	if(!oricull) {
+	if(!(oricull || frustcull || distcull)) {
+//	if(!oricull) {
 //	if(!distcull) {
 //	if(!frustcull) {
 		culledblades[atomicAdd(numBlades.vertexCount, 1)] = thisblade;

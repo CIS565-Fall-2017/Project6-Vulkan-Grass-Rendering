@@ -37,12 +37,15 @@ void main() {
 	//http://in2gpu.com/2014/07/12/tessellation-tutorial-opengl-4-3
 
 	//to set level dynamically, you can find persp z (0-1) and use that to interp (mix) between tess levels (say 5 for close 1 for far)
-	vec4 ndc = viewproj*vec4(gl_in[0].gl_Position.xyz,1.0);
-	float t = -ndc.z / ndc.w;
+//	vec4 ndc = viewproj*vec4(gl_in[0].gl_Position.xyz,1.0);
+//	float t = -ndc.z / ndc.w;
+	
+	vec4 viewpos = camera.view*vec4(gl_in[0].gl_Position.xyz,1.0);
+	float t = clamp(-viewpos.z/30.f, 0.f, 1.f);
 	int mintess = 1;
 	int maxtess = 10;
-//	float level = mix(maxtess, mintess, t);
-	float level = 10;
+	float level = mix(maxtess, mintess, t);
+//	float level = maxtess;
 
 	//controls inner tesselation. 0 == horiz tess, 1 == vert tess
     gl_TessLevelInner[0] = 1;

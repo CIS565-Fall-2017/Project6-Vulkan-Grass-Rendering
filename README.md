@@ -5,26 +5,26 @@ Project 6 - Vulkan Grass Rendering**
 * Tested on: Windows 10, i7-6700HQ @ 2.6GHz 8GB, GTX 960M 2GB  Personal
 
 **Overview**<br />
-For implementation details see:
+For implementation details see:<br />
 https://www.cg.tuwien.ac.at/research/publications/2017/JAHRMANN-2017-RRTG/JAHRMANN-2017-RRTG-draft.pdfs
-
-For tesselation details see:
+<br />
+For tesselation details see:<br />
 http://in2gpu.com/2014/07/12/tessellation-tutorial-opengl-4-3/
 http://prideout.net/blog/?p=48#levels
 
 
 **Highlights**<br />
-Several culling optimizations were used to reduce computation cost: orientation culling, frustum culling and distance culling. To reduce triangle count, tesselation level is reduced the further the blade is away from the camera. Performance comparisons between culling techniques are sensitive to the setup of the scene but provide insight into how much work is being removed by these culling techniques.
+Several culling optimizations were used to reduce computation cost: orientation culling, frustum culling and distance culling. To reduce triangle count, tesselation level is reduced the further the blade is away from the camera. Performance comparisons between culling techniques are sensitive to the setup of the scene but provide insight into how much work is being removed by these culling techniques. For the scene provided frustum culling was the most effective at improving performance, followed orientation, then distance. This makes sense as frustum culling excludes most of the scene from the computation. Orientation and distance are still doing work for grass blades that don't show up on the screen and are more scene dependent. Distance could be more effective than orientation for very large scenes but for the scene that was rendered this was not the case. Tessaltion falloff based on distance from camera has noticable performance improvements when there are large numbers of grass blades to render but for realstic amounts of grass, it's not that useful. 
 <br />
 <br />
 
 **Vulkan Grass Rendering**<br />
 ![](img/thegrass.gif)
 
-**Screenshot**
+**Screenshot**<br />
 ![](img/grass.png)
 
-**Data**<br />
+# Data<br />
 **Performance improvement due to all culling techniques**<br />
 ![](img/graphcullvsnocull.png)
 
