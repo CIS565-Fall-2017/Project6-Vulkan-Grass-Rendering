@@ -15,6 +15,7 @@ layout(location = 2) in vec4 e_orthogonal[]; // normalized orthogonal direction 
 
 layout(location = 0) out vec3 f_pos;
 layout(location = 1) out vec3 f_nor;
+layout(location = 2) out float f_occ; // faked ambient occlusion weight
 
 void main() {
     float u = gl_TessCoord.x;
@@ -35,6 +36,8 @@ void main() {
 	vec3 pOrtho = (1.0 - v) * e_o.w * 2.0 * (u - 0.5) * e_o.xyz;
 	
 	f_pos = (camera.view * vec4(pBezier + pOrtho, 1.0)).xyz;
+
+	f_occ = 0.75 * (1.0 - v) + 0.25 * (1.0 - 2.0 * abs(0.5 - u));
 
 	// normals
 	vec3 bezTangent = normalize(b - a);

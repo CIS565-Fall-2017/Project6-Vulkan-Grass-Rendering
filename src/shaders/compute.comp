@@ -118,17 +118,19 @@ void main() {
 	inBlades[gl_GlobalInvocationID.x] = blade;
 	
 	// -- cull blades --
+	vec3 camPos = -transpose(mat3(camera.view)) * camera.view[3].xyz;
 
 	// blades orientation test
+	vec3 camProj = camPos - blade.v0.xyz;
+	camProj.y = 0.05;
 
 	vec3 cv0 = (camera.view * vec4(blade.v0.xyz, 1.0)).xyz;
-	bool cullOrientation = abs(dot(forward, normalize(-cv0))) < 0.1;
+	bool cullOrientation = abs(dot(forward, normalize(camProj))) < 0.05;
 
 	// projected distance test
 
-	vec3 camPos = -transpose(mat3(camera.view)) * camera.view[3].xyz;
-	float dproj = length(blade.v0.xyz - camPos - blade.up.xyz * (dot(blade.up.xyz, blade.v0.xyz - camPos)));
 	
+	float dproj = length(blade.v0.xyz - camPos - blade.up.xyz * (dot(blade.up.xyz, blade.v0.xyz - camPos)));
 	bool cullDistance = mod(gl_GlobalInvocationID.x, 10.0) < floor(10.0 * (1.0 - (dproj / 40.0)));
 
 	// frustum test

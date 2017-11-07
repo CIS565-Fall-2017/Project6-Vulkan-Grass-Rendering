@@ -36,13 +36,15 @@ void main() {
 	e_o.w = p2.w; // width
 	e_orthogonal[gl_InvocationID] = e_o;
 	
-	// TODO: depth dependent using p0
+	float viewDist = length((camera.view * vec4(p0.xyz, 1.0)).xyz);
+
+	float segments = max(2.0, floor(6.0 * (1.0 - viewDist / 40.0)));
 
     gl_TessLevelInner[0] = 2; // u
-    gl_TessLevelInner[1] = 4; // v
+    gl_TessLevelInner[1] = segments; // v
 
-    gl_TessLevelOuter[0] = 4; // v
+    gl_TessLevelOuter[0] = segments; // v
     gl_TessLevelOuter[1] = 2; // u
-    gl_TessLevelOuter[2] = 4; // v
+    gl_TessLevelOuter[2] = segments; // v
     gl_TessLevelOuter[3] = 2; // u
 }
