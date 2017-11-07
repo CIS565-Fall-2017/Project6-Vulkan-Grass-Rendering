@@ -2,6 +2,10 @@
 #extension GL_ARB_separate_shader_objects : enable
 
 #define WORKGROUP_SIZE 32
+#define CULL_N_BLADES 10
+#define D_MAX 10.0
+#define TOLERANCE 1.0
+
 layout(local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 layout(set = 0, binding = 0) uniform CameraBufferObject {
@@ -12,29 +16,39 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 layout(set = 1, binding = 0) uniform Time {
     float deltaTime;
     float totalTime;
-};
+}time;
 
 struct Blade {
-    vec4 v0;
-    vec4 v1;
-    vec4 v2;
-    vec4 up;
-};
+    vec4 v0; //Orientation: the orientation of the grass blade's face
+    vec4 v1; //Height: the height of the grass blade
+    vec4 v2; //Width: the width of the grass blade's face
+    vec4 up; //Stiffness coefficient: the stiffness of our grass blade, which will affect the force computations on our blade
+	};
 
 // TODO: Add bindings to:
 // 1. Store the input blades
 // 2. Write out the culled blades
 // 3. Write the total number of blades remaining
 
+layout(set = 2, binding = 0) buffer Blades
+{
+    Blade blades[];
+};
+
+layout(set = 2,binding = 1) buffer CulledBlades
+{
+    Blade culledBlades[];
+};
+
 // The project is using vkCmdDrawIndirect to use a buffer as the arguments for a draw call
 // This is sort of an advanced feature so we've showed you what this buffer should look like
 //
-// layout(set = ???, binding = ???) buffer NumBlades {
-// 	  uint vertexCount;   // Write the number of blades remaining here
-// 	  uint instanceCount; // = 1
-// 	  uint firstVertex;   // = 0
-// 	  uint firstInstance; // = 0
-// } numBlades;
+ layout(set = 2, binding = 2) buffer NumBlades {
+	  uint vertexCount;   // Write the number of blades remaining here
+ 	  uint instanceCount; // = 1
+ 	  uint firstVertex;   // = 0
+ 	  uint firstInstance; // = 0
+ } numBlades;
 
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
@@ -43,14 +57,118 @@ bool inBounds(float value, float bounds) {
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
+		 numBlades.vertexCount = 0;
 	}
 	barrier(); // Wait till all threads reach this point
 
     // TODO: Apply forces on every blade and update the vertices in the buffer
+	uint index = gl_GlobalInvocationID.x;
+	
+	vec3 v0 = vec3(blades[index].v0[0],blades[index].v0[1],blades[index].v0[2]);
+	vec3 v1 = vec3(blades[index].v1[0],blades[index].v1[1],blades[index].v1[2]);
+	vec3 v2 = vec3(blades[index].v2[0],blades[index].v2[1],blades[index].v2[2]);
+	vec3 up = vec3(blades[index].up[0],blades[index].up[1],blades[index].up[2]);
+
+	float direction = blades[index].v0[3];
+	float height = blades[index].v1[3];
+	float width = blades[index].v2[3];
+	float stiffness = blades[index].up[3];
+
+	float cosTheta = cos(direction);
+	float sinTheta = sin(direction);
+
+	//gravity
+	vec3 gravityDir = vec3(0.0,-1.0,0.0);
+	float gravityMag = 7.0;
+	vec3 gE = normalize(gravityDir) * gravityMag; 
+	vec3 leftVec = normalize(vec3(cosTheta,0.0,-sinTheta));
+	vec3 bladeFront = normalize(cross(leftVec,up));
+	vec3 gF = (1/4) * length(gE) * bladeFront;
+	vec3 gravity = gF + gE;
+
+	//recovery
+	vec3 iv2 = vec3(v0+height*up);	
+	vec3 recovery = vec3(iv2-v2) * stiffness;
+
+	//wind
+	vec3 windDir = vec3(cos(time.totalTime),0.0,sin(time.totalTime));
+	float windAli = (1 - abs(dot(normalize(windDir),normalize(v2-v0))))*0.4;
+	vec3 wind = windAli*windDir;
+
+	//validation
+	vec3 tv2 = (gravity + recovery + wind) * time.deltaTime;
+
+	v2 = v1 + tv2;
+
+	float L0 = length(v2-v0);
+	float L1 = length(v2-v1)+length(v1-v0);
+	float L = (2*L0+L1)/3;
+	float r = height/L;
+	
+	vec3 v1Cor = v0+r*(v1-v0);
+	vec3 v2Cor = v1Cor+r*(v2-v1);
+	blades[index].v1[0] = v1Cor[0];
+	blades[index].v1[1] = v1Cor[1];
+	blades[index].v1[2] = v1Cor[2];
+
+	blades[index].v1[0] = v2Cor[0];
+	blades[index].v2[1] = v2Cor[1];
+	blades[index].v2[2] = v2Cor[2];
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
+
+	//orientation test
+	bool orientation = true;
+	vec3 camBladeFront = vec3(camera.view*vec4(bladeFront,0.0));
+	if(abs(dot(vec3(0.0,0.0,-1.0),camBladeFront))<0.1)
+	{
+	    orientation = false;
+	}
+
+	//View-frustum test
+	bool viewFrustum = true;
+	vec4 v0Frus = camera.proj * camera.view * vec4(v0.xyz,1.0);
+	vec4 v1Frus = camera.proj * camera.view * vec4(v1.xyz,1.0);
+	vec4 v2Frus = camera.proj * camera.view * vec4(v2.xyz,1.0);
+	
+	float h0 = v0Frus.w + TOLERANCE;
+	float h1 = v1Frus.w + TOLERANCE;
+	float h2 = v2Frus.w + TOLERANCE;
+
+	if((v0Frus.x<-h0)||(v0Frus.x>h0)||(v0Frus.y<-h0)||(v0Frus.y>h0)||(v0Frus.z<-h0)||(v0Frus.w>h0))
+	{
+	    viewFrustum = false;
+	}
+	if((v1Frus.x<-h1)||(v1Frus.x>h1)||(v1Frus.y<-h1)||(v1Frus.y>h1)||(v1Frus.z<-h1)||(v1Frus.w>h1))
+	{
+	    viewFrustum = false;
+	}
+	if((v2Frus.x<-h2)||(v2Frus.x>h2)||(v2Frus.y<-h2)||(v2Frus.y>h2)||(v2Frus.z<-h2)||(v2Frus.w>h2))
+	{
+	    viewFrustum = false;
+	}
+
+	//Distance test
+	bool distance = true;
+    vec4 cameraPos = inverse(camera.view)*vec4(0.0,0.0,0.0,1.0);
+	float dProj = length(v0 - cameraPos.xyz - up * dot((v0-cameraPos.xyz),up));
+	uint modValue = uint(mod(index,CULL_N_BLADES));
+	uint cullValue = uint(ceil(max((1.0f - dProj / D_MAX), 0.0f) * CULL_N_BLADES));   
+	if(modValue < cullValue)
+	{
+	    distance = false;
+	}
+
+	//add the result into the culledBlades
+	if(orientation&&viewFrustum&&distance)
+	{
+        culledBlades[atomicAdd(numBlades.vertexCount,1)] = blades[index];   
+	}
+	
+
+	//first let the grass to grow on the plane
+	 //culledBlades[atomicAdd(numBlades.vertexCount,1)] = blades[index];   
 }
