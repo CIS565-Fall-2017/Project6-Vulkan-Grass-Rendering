@@ -8,7 +8,7 @@ Vulkan Grass Rendering
 
 ### Overview
 
-An implementation of a grass simulator and renderer usng Vulkan based on
+An implementation of a grass simulator and renderer using Vulkan based on
 the paper, [Responsive Real-Time Grass Rendering for General 3D Scenes](https://www.cg.tuwien.ac.at/research/publications/2017/JAHRMANN-2017-RRTG/JAHRMANN-2017-RRTG-draft.pdf).
 
 ![](img/demo.gif)
@@ -23,7 +23,7 @@ The effect of culling is more significant when the number of blades exceed 1 mil
 
 ![](img/no_culling_chart.PNG)
 
-When comparing the perfomance boost of all three culling tests on the renderer, the difference between them is negligible.
+When comparing the performance boost of all three culling tests on the renderer, the difference between them is negligible.
 However, as we increase the number of blades we can start to identify which culling test better improves the performance of the renderer as seen in the chart below.
 The distance test provides the best results, followed by the view-frustum test then finally the orientation test being 
 the least significant.
