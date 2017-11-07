@@ -48,6 +48,13 @@ bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
 }
 
+bool inBoundsNDC(in vec4 v4) {
+	vec3 v = v4.xyz / v4.w;
+	return (v.x >= -1.05) && (v.x <= 1.05) &&
+	(v.y >= -1.05) && (v.y <= 1.05) &&
+	(v.z >= -1.05) && (v.z <= 1.05);
+}
+
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
@@ -80,8 +87,8 @@ void main() {
 	//wind force
 
 	vec3 wind = 2.5 * (1.0 + sin(0.4 * totalTime + 0.06 * blade.v0.x + 0.05 * blade.v0.z) + 
-	0.3 * cos(1.7 * totalTime + 0.4 * blade.v0.x) + 
-	0.1 * sin(3.0 * totalTime + 0.5 * blade.v0.z)) 
+	0.4 * cos(1.7 * totalTime + 0.4 * blade.v0.x) + 
+	0.2 * sin(3.0 * totalTime + 0.5 * blade.v0.z)) 
 	* normalize(vec3(-1, 0, -1));
 
 	vec3 displacement = deltaTime * (wind + spring + gravity);
@@ -108,14 +115,37 @@ void main() {
 	blade.v2.xyz = newV2;
 	
 	//blade.v2.xyz = newV2;
-	outBlades[gl_GlobalInvocationID.x] = blade;
 	inBlades[gl_GlobalInvocationID.x] = blade;
 	
 	// -- cull blades --
 
-	atomicAdd(numBlades.vertexCount, 1);
+	// blades orientation test
 
-    // TODO: Apply forces on every blade and update the vertices in the buffer
+	vec3 cv0 = (camera.view * vec4(blade.v0.xyz, 1.0)).xyz;
+	bool cullOrientation = abs(dot(forward, normalize(-cv0))) < 0.1;
+
+	// projected distance test
+
+	vec3 camPos = -transpose(mat3(camera.view)) * camera.view[3].xyz;
+	float dproj = length(blade.v0.xyz - camPos - blade.up.xyz * (dot(blade.up.xyz, blade.v0.xyz - camPos)));
+	
+	bool cullDistance = mod(gl_GlobalInvocationID.x, 10.0) < floor(10.0 * (1.0 - (dproj / 40.0)));
+
+	// frustum test
+	vec4 ndc0 = (camera.proj * camera.view * vec4(blade.v0.xyz, 1.0));
+	vec4 ndc1 = (camera.proj * camera.view * vec4(blade.v1.xyz, 1.0));
+	vec4 ndc2 = (camera.proj * camera.view * vec4(blade.v2.xyz, 1.0));
+
+	bool cullNDC = (!inBoundsNDC(ndc0) && !inBoundsNDC(ndc1) && !inBoundsNDC(ndc2));
+
+	if (cullDistance && !cullOrientation && !cullNDC) {
+		
+		outBlades[atomicAdd(numBlades.vertexCount, 1)] = blade;
+	}
+
+	//atomicAdd(numBlades.vertexCount, 1);
+
+    
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer

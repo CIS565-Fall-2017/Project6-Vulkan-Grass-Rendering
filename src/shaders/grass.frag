@@ -16,17 +16,18 @@ void main() {
     // simple blinn shading
 	
 	vec3 N = normalize(f_nor);
-	N = faceforward(N, normalize(-f_pos), -N);
+	vec3 V = normalize(-f_pos);
+	N = faceforward(N, V, -N);
 	vec3 lightDir = (camera.view * vec4(normalize(vec3(-1)), 0.0)).xyz;
 	//vec3 lightDir = normalize(f_pos - (camera.view * vec4(0.0, 5.0, 0.0, 1.0)).xyz);
-	vec3 H = normalize(normalize(-f_pos) - lightDir); // view space
-	vec3 specColor = vec3(0.2);
-	vec3 diffColor = vec3(0.5, 0.8, 0.3);
+	vec3 H = normalize(V - lightDir);
+	vec3 specColor = vec3(0.3);
+	vec3 diffColor = vec3(0.35, 0.7, 0.2);
 	vec3 backScatter = vec3(0.4, 0.9, 0.2);
 
 	diffColor *= max(0.0, dot(N, -lightDir));
 	specColor *= pow(max(0.0, dot(N, H)), 64.0);
-	backScatter *= 0.8 * pow(max(0.0, dot(-N, H)), 8.0) + 0.2 * max(0.0, dot(-N, -lightDir));
+	backScatter *= 0.3 * max(0.0, dot(N, V)) * pow(max(0.0, dot(-N, -lightDir)), 16.0) + 0.2 * max(0.0, dot(-N, -lightDir));
 
     outColor = vec4(specColor + diffColor + backScatter, 1.0);
 	outColor.xyz *= vec3(1.0, 0.95, 0.9); // warm sunlight
