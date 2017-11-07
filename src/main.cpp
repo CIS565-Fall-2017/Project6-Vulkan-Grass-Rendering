@@ -16,7 +16,8 @@ namespace {
         if (width == 0 || height == 0) return;
 
         vkDeviceWaitIdle(device->GetVkDevice());
-        swapChain->Recreate();
+        swapChain->Recreate(width, height);
+		camera->UpdateAspectRatio(float(width) / height);
         renderer->RecreateFrameResources();
     }
 
@@ -67,7 +68,7 @@ namespace {
 
 int main() {
     static constexpr char* applicationName = "Vulkan Grass Rendering";
-    InitializeWindow(640, 480, applicationName);
+    InitializeWindow(1280, 960, applicationName);
 
     unsigned int glfwExtensionCount = 0;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -90,7 +91,7 @@ int main() {
 
     swapChain = device->CreateSwapChain(surface, 5);
 
-    camera = new Camera(device, 640.f / 480.f);
+    camera = new Camera(device, 1280.f / 960.f);
 
     VkCommandPoolCreateInfo transferPoolInfo = {};
     transferPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -116,7 +117,7 @@ int main() {
         grassImageMemory
     );
 
-    float planeDim = 15.f;
+    float planeDim = 50.f;
     float halfWidth = planeDim * 0.5f;
     Model* plane = new Model(device, transferCommandPool,
         {
@@ -128,7 +129,7 @@ int main() {
         { 0, 1, 2, 2, 3, 0 }
     );
     plane->SetTexture(grassImage);
-    
+
     Blades* blades = new Blades(device, transferCommandPool, planeDim);
 
     vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
@@ -143,10 +144,20 @@ int main() {
     glfwSetMouseButtonCallback(GetGLFWWindow(), mouseDownCallback);
     glfwSetCursorPosCallback(GetGLFWWindow(), mouseMoveCallback);
 
+	int time_start = GetTickCount();
+	int count = 0;
+
     while (!ShouldQuit()) {
         glfwPollEvents();
         scene->UpdateTime();
         renderer->Frame();
+		count++;
+		if (count == 1000) {
+			int total_time = GetTickCount() - time_start;
+			printf("Total Time for 500 frames: %d\n", total_time);
+			printf("Time per frame: %f\n", float(total_time) / 1000.0);
+			printf("fps: %f\n", 1000000.0 / float(total_time));
+		}
     }
 
     vkDeviceWaitIdle(device->GetVkDevice());

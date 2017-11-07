@@ -188,8 +188,9 @@ VkSemaphore SwapChain::GetRenderFinishedVkSemaphore() const {
     return renderFinishedSemaphore;
 }
 
-void SwapChain::Recreate() {
+void SwapChain::Recreate(float width, float height) {
     Destroy();
+	glfwSetWindowSize(GetGLFWWindow(), width, height);
     Create();
 }
 
@@ -204,7 +205,9 @@ bool SwapChain::Acquire() {
     }
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-        Recreate();
+		int width, height;
+		glfwGetWindowSize(GetGLFWWindow(), &width, &height);
+		Recreate(width, height);
         return false;
     }
 
@@ -233,7 +236,9 @@ bool SwapChain::Present() {
     }
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
-        Recreate();
+		int width, height;
+		glfwGetWindowSize(GetGLFWWindow(), &width, &height);
+		Recreate(width, height);
         return false;
     }
 
