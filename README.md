@@ -46,13 +46,13 @@ Performance Analysis
 
 ![](img/chart_VNGB.png)
 
-- 
+- As we can see in this chart as the number of grass blades increases the performance optimizations really shine. The frame rates keep on getting better. As the number of grass blades increases the shading stage becommes more and more intensive as we are rendering each grass blade individually and by culling some of the grass blades from the get go in the vertex shader we do not spend time unneseccarily shading fragments that do not contribute to the final quality of the render. Kind of like what a deffered shader does.
 
-## With and without performance optimizations
+## With different performance optimizations
 
-![](img/chart_WWPO.png) 
+![](img/chart_WDPO.png) 
 
--
+- With the individual performance optimizations the difference in performance gain is very minomial to give a proper verdict on the most optimal method. The contribution of speed up gained as discussed in the above performance analysis is due to equal parts all the three optimizations.
 
 
 Grass Rendering
