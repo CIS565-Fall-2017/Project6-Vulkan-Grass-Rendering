@@ -36,6 +36,24 @@ struct Blade {
 // 	  uint firstInstance; // = 0
 // } numBlades;
 
+// Input buffer of blades
+layout(set = 2, binding = 0) buffer Blades {
+	Blade blades[];
+};
+
+// Output buffer of culled only visible blades
+layout(set = 2, binding = 1) buffer CulledOutBlades {
+	Blade culledOutBlades[];
+};
+
+// Output no of culled blades buffer count
+layout(set = 2, binding = 2) buffer NumBlades {
+ 	uint vertexCount;   // Write the number of blades remaining here
+ 	uint instanceCount; // = 1
+ 	uint firstVertex;   // = 0
+ 	uint firstInstance; // = 0
+} numBlades;
+
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
 }
@@ -43,14 +61,130 @@ bool inBounds(float value, float bounds) {
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
+		numBlades.vertexCount = 0;
 	}
 	barrier(); // Wait till all threads reach this point
 
     // TODO: Apply forces on every blade and update the vertices in the buffer
+	
+	// Blade at index
+	uint index = gl_GlobalInvocationID.x;
+	Blade thisBlade = blades[index];
+
+	// Original components of the grass blade
+	// Positions
+	vec3 V0 = thisBlade.v0.xyz;
+	vec3 V1 = thisBlade.v1.xyz;
+	vec3 V2 = thisBlade.v2.xyz;
+
+	// Up vector
+	vec3 UP = thisBlade.up.xyz;
+
+	// Height & Width
+	float H = thisBlade.v1.w;
+	float W = thisBlade.v2.w;
+
+	// Direction
+	float Theta = thisBlade.v0.w;
+	vec3 bladeDirection = normalize(cross(UP, vec3(sin(Theta), 0.0, cos(Theta))));
+
+	// Stiffness
+	float S = thisBlade.up.w;
+	
+	// GRAVITY
+	// Gravity dircetion (.xyz) and magnitude (.w)
+	vec4 gDM = vec4(0.0, -1.0, 0.0, 9.8);
+	
+	vec3 gE = normalize(gDM.xyz) * gDM.w;
+	vec3 gF = 0.25 * length(gE) * bladeDirection;
+
+	// Total Gravity
+	vec3 gT = gE + gF;
+
+	
+	// RECOVERY
+	// Original position
+	vec3 iV2 = V0 + UP * H;
+
+	vec3 rF = (iV2 - V2) * S;
+	
+	// WIND 
+	vec3 windDirection = normalize(vec3(1.0, 0.0, 0.0));
+	float windForce = 10.0;
+	float wind = windForce * sin(2.5 * totalTime + dot(windDirection + vec3(0.0, 0.0, -1.0) , V0)) + windForce * cos(2.5 * totalTime + dot(windDirection + vec3(1.0, 0.0, -1.0) , V0));
+	vec3 bladeOrientation = V2 - V0;
+
+	// Directional alignment to the wind
+	float fD = 1.0 - abs(dot(windDirection, normalize(bladeOrientation)));
+	
+	// Blade height ratio
+	float fH = dot(bladeOrientation, UP) / H;
+
+	// Total wind force
+	vec3 wT = windDirection * fD * fH * wind;
+
+	
+	// Total Force on V2
+	V2 += (gT + rF + wT) * deltaTime;
+
+	
+	// State Validation
+	V2 = V2 - UP * min(dot(UP, (V2 - V0)), 0.0);
+	vec3 lproj = V2 - V0 - UP * dot((V2 - V0), UP);
+	float lph = length(lproj) / H;
+	V1 = V0 + H * UP * max(1 - lph, 0.05 * max(lph, 1));
+	float L0 = distance(V0, V2);
+	float L1 = distance(V0, V1) + distance(V1, V2);
+	float n = 2.0;
+	float L = (2.0 * L0 + (n - 1.0) * L1) / (n + 1.0);
+	float r = H / L;
+	vec3 v1old = V1;
+	V1 = V0 + r * (V1 - V0);
+	V2 = V1 + r * (V2 - v1old);
+
+	// update Blades[]..
+	thisBlade.v1.xyz = V1;
+	thisBlade.v2.xyz = V2;
+	blades[index] = thisBlade;
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
+	bool distanceCulled = false;
+	bool orientationCulled = false;
+	bool frustrumCulled = false;
+
+	// Distance culling
+	if((-(camera.view * vec4(V0, 1.0)).z) > 25) {
+		distanceCulled = true;
+	}
+
+	// View Frustrum Culling
+	vec4 v0Projected = camera.proj * camera.view * vec4(V0, 1.0);
+	v0Projected /= v0Projected.w;
+	vec4 v2Projected = camera.proj * camera.view * vec4(V2, 1.0);
+	v2Projected /= v2Projected.w;
+	// Mid Point for estimation of the whole blade
+	vec3 mid = 0.25 * V0 + 0.5 * V1 + 0.25 * V2;
+	vec4 midProjected = camera.proj * camera.view * vec4(mid, 1.0);
+	midProjected /= midProjected.w;
+
+	if(!inBounds(v0Projected.x, 1) && !inBounds(v0Projected.y, 1) && !inBounds(v0Projected.z, 1) &&
+	   !inBounds(v2Projected.x, 1) && !inBounds(v2Projected.y, 1) && !inBounds(v2Projected.z, 1) &&
+	   !inBounds(midProjected.x, 1) && !inBounds(midProjected.y, 1) && !inBounds(midProjected.z, 1)) {
+		frustrumCulled = true;
+	}
+
+	// Orientation culling
+	vec4 forward = inverse(camera.view) * vec4(0.0, 0.0, 1.0, 0.0);
+	float threshold = 0.85;
+	float dotCull = abs(dot(bladeDirection, forward.xyz));
+	if(dotCull < threshold) {
+		orientationCulled = true;
+	}
+
+	if(!distanceCulled && !orientationCulled && !frustrumCulled) {
+		culledOutBlades[atomicAdd(numBlades.vertexCount, 1)] = blades[index];
+	}
 }
