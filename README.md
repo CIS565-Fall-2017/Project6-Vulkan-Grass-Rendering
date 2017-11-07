@@ -71,4 +71,10 @@ Using a tesselation shader, each bezier curve is transformed into a triangular b
 
 ![](img/chart.png)
 
-In order to test the effects of culling, I measured the frame rate for each type of culling separately, as well as all the types of culling together and compared it to no culling. For distance culling, I measured it a distance away from the scene in which half the blades were not drawn. View frustum culling did not help the frame rate too much because the view of the camera I chose for the scene did not exclude too many blades. It also seems like orientation culling was a much better stand-alone optimization.
+In order to test the effects of culling, I measured the frame rate for each type of culling separately, as well as all the types of culling together and compared it to no culling. For distance culling, I set the distance threshold to be 10 in order to have a consistent distance of blades not drawn. View frustum culling did not help the frame rate too much because the view of the camera I chose for the scene did not exclude too many blades. It also seems like orientation culling was a much better stand-alone optimization.
+
+![](img/chart2.png)
+
+The relative performance gain of each type of culling was consistent amongst different number of blades. Compounded, all types of culling was an enormous optimization. All forms of culling impact the seen very differently based on the position of the camera. In order to be more thorough about testing, I could also test out different scenes.
+
+![](img/table.png)
