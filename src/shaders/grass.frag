@@ -48,6 +48,22 @@ void main() {
 	float ambient = 0.15;
 	vec3 colorLinear = (ambient +
 						lambertian + specular) * diffuseColor;
+
+
+	////Distance Culling
+	//float min_distance = 0.1;
+	//float far_distance = 100;
+
+	////seperate into 10 buckets
+	//the distance between each bucket is 10
+	//vec4 view_v0 = camera.view * vec4(world_pos.xyz, 1.0f);
+	//float horizontal_distance = abs(dot(view_v0.xyz, vec3(0,0,1)));
+
+	//int bucket_level = 11;
+	//if(horizontal_distance < far_distance){
+	//	bucket_level = int(horizontal_distance) / 10;
+	//}
+	//outColor = vec4(vec3(float(bucket_level)/10.0f), 1.0f);
     outColor = vec4(colorLinear, 1.0);
 
     //outColor = vec4(1.0);
