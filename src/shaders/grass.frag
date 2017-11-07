@@ -22,7 +22,7 @@ void main() {
 		// use green + lambert shading
 		const vec3 lightDir = vec3(-0.577350269, 0.577350269, 0.577350269);
 		float lambert = max(dot(fs_normal, lightDir), dot(-fs_normal, lightDir));
-		lambert = clamp(lambert, 0.25, 1.0) * 0.7 + 0.3;
+		lambert = clamp(lambert, 0.25, 1.0) * 0.5 + 0.5;
 		vec3 color = vec3(0.1, 0.9, 0.2) * lambert;
 		outColor = vec4(color, 1.0);
 	}
