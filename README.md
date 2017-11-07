@@ -44,9 +44,10 @@ Below are the renderer's main features:
   * Tessellation evaluation shader (`shaders/grass.tese`)
     * Evaluates Bezier curve to place blade's vertices in correct positions
   * Fragment shader (`shaders/grass.frag`)
-    * Two coloring methods, depending on which one was chosen in compute shader
-      * Wind direction (no shading)
-      * Lambert shading, with blades having constant albedo color
+    * Two coloring modes, depending on which one was chosen in compute shader
+      * Wind as color (no shading)
+        * This maps the absolute coordinates of the wind force's direction to a color. Note this uses the final wind force (scaled by the wind alignment factor), hence why a mostly vertical wind will show up as grey.
+      * Lambert shading, with blades having constant green albedo color
 
 Below are some of the main changes made to the base code (mostly related to Vulkan):
 
@@ -68,9 +69,53 @@ Below are some of the main changes made to the base code (mostly related to Vulk
   * Define additional field `color`
     * `color.w` determines whether to use `color.xyz` or default green color to render grass blade
 
+### Wind Functions
+
+The wind functions are named after the macro that enables them in `shaders/compute.comp`. Some of these are shown in "Example GIFs" below.
+
+* `WIND_X`: Periodic wind in the X direction.
+* `WIND_Y`: Periodic wind mostly in the Y direction. A wind exactly in the Y direction will not move the blades due to the way `v2` is computed._
+* `WIND_Z`: Periodic wind in the Z direction.
+* `WIND_RADIAL`: Periodic wind that emanates outwards from the origin, creating circular waves.
+* `WIND_CIRCLE`: Wind that moves around in a circular trajectory.
+* `WIND_XZ`: Periodic wind in the X and Z directions. More complex than just a combination of `WIND_X` and `WIND_Z`!
+* `WIND_CONST`: Constant wind in the (1, 1, -1) direction._
+
 ## Example GIFs
 
-TODO
+Below are some GIFs showcasing the wind functions implemented here, as well as the two coloring modes. These were rendered using the camera enabled by `WIND_GIF_CAMERA` in `Camera.cpp`.
+
+`WIND_X`, Lambert mode:
+
+![](img/wind_x_lambert.gif)
+
+`WIND_X`, "wind as color" mode:
+
+![](img/wind_x_wind.gif)
+
+`WIND_RADIAL`, Lambert mode:
+
+![](img/wind_radial_lambert.gif)
+
+`WIND_RADIAL`, "wind as color" mode:
+
+![](img/wind_radial_wind.gif)
+
+`WIND_CIRCLE`, Lambert mode:
+
+![](img/wind_circle_lambert.gif)
+
+`WIND_CIRCLE`, "wind as color" mode:
+
+![](img/wind_circle_wind.gif)
+
+`WIND_XZ`, Lambert mode:
+
+![](img/wind_xz_lambert.gif)
+
+`WIND_XZ`, "wind as color" mode:
+
+![](img/wind_xz_wind.gif)
 
 ## Analysis
 

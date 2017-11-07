@@ -12,10 +12,12 @@
 #define WIND_CIRCLE 4
 #define WIND_XZ 5
 #define WIND_CONST 6
-#define WIND_TYPE WIND_RADIAL
+
+#define WIND_TYPE WIND_XZ
+
 #define WIND_CIRCLE_RADIUS 5.0
 
-#define USE_CUSTOM_COLOR 0
+#define USE_CUSTOM_COLOR 1
 
 #define ORIENTATION_CULL 1
 #define FRUSTUM_CULL 1

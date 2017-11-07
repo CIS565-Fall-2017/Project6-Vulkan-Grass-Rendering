@@ -1,7 +1,7 @@
 #include "Scene.h"
 #include "BufferUtils.h"
 
-#define PRINT_AVG_DELTA 1
+#define PRINT_AVG_DELTA 0
 
 Scene::Scene(Device* device) : device(device), deltaAcc(0.0f), deltaCount(0) {
     BufferUtils::CreateBuffer(device, sizeof(Time), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, timeBuffer, timeBufferMemory);
