@@ -196,6 +196,30 @@ Below is a graph comparing the average time to render a frame with and without d
 
 As we can see, dynamic tessellation provides a small improvement to performance. Even at a high number of blades, the decrease in runtime is quite small. This suggests the bulk of the work is not done in the tessellation evaluation shader and subsequent stages.
 
+### All Culling Combined
+
+#### Overview
+
+Below, we investigate the effects of enabling all our culling methods.
+
+#### Performance Impact (default camera)
+
+Below is a graph comparing the average time to render a frame with all culling methods enabled and disabled, with the default camera. 
+
+![](img/graph-all-default.png)
+
+The improvements from the combined culling are, as before, more noticeable when there are more grass blades. Combining all culling methods leads to better performance than when any individual culling method is enabled by itself.
+
+We know view-frustum culling is highly dependent on the camera's position and orientation, so let us investigate the results using the zoomed-in camera.
+
+#### Performance Impact (zoomed-in camera)
+
+Below is a graph comparing the average time to render a frame with all culling methods enabled and disabled, as well as with only distance culling enabled, with the zoomed-in camera. 
+
+![](img/graph-all-zoom.png)
+
+Although the distance-based culling is responsible for most of improvement in runtime, the other culling methods also help to further reduce the render time.
+
 ## Other Notes
 
 * The GIF at the beginning of the README was rendered with `2^14` blades, "wind as color" mode enabled, and with radial wind enabled. 
