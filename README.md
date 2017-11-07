@@ -14,4 +14,12 @@ project, and we will not be able to grade you without a good README.
 
 ### 1. Grass Rendering 
 
+#### Basic Feature (Without movement)
+
+![enter image description here](https://lh3.googleusercontent.com/-OM--CYcT4nU/WgEgcRNqZRI/AAAAAAAABNM/POvgiEtbNZg6lFkJy-lkQrUISFukxpMSwCLcBGAs/s0/resultNoMovement.gif "resultNoMovement.gif")
+
+#### Gravity and Wind
+
+#### Culling
+
 ### 2 Performance Analysis
