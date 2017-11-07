@@ -137,7 +137,7 @@ void main()
 	// Update the input blades so the state propogates
 	inputBlades[index].v1.xyz = v1_corrected;
 	inputBlades[index].v2.xyz = v2_corrected;
-
+	
 	// Cull Blades
 	// 1. Orientation culling
 	mat4 inverseViewMat = inverse(camera.view);
@@ -179,7 +179,7 @@ void main()
 	// at the same time.
 	// You want to write the visible blades to the buffer without write conflicts between threads
 	
-	if(!culled_Due_To_Orientaion && !culled_Due_To_Frustum && !culled_Due_To_Distance)
+	if(!culled_Due_To_Distance && !culled_Due_To_Frustum && !culled_Due_To_Orientaion) //   
 	{
 		culledBlades[atomicAdd(numBlades.vertexCount, 1)] = inputBlades[index];
 	}	

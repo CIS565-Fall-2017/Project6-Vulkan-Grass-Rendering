@@ -35,7 +35,7 @@ void main()
 	vec3 c1 = center + width*scaling * bitangent;
 
 	vec3 tangent = normalize(b - a);
-	f_normal.xyz = normalize(cross(bitangent, tangent));
+	f_normal.xyz = normalize(bitangent);
 	f_normal.w = v; //for fragment shading
 
 	//float t = u - u * v * v; // quadratic shape
@@ -43,7 +43,7 @@ void main()
 	float tao = 0.75;
 	float t = 0.5 + (u-0.5)*(1.0 - ( max(v-tao, 0.0) / (1.0-tao)) ); // triangle tip shape
 
-	f_pos_world = mix(c0, c1, t);
+	f_pos_world = mix(c0, c1, t);	
 
 	gl_Position = camera.proj * camera.view * vec4(f_pos_world, 1.0);
 }
