@@ -15,16 +15,16 @@ In this project I implemented a grass renderer based on paper [Responsive Real-T
 
 ### Features implemented:
 * Vertex Shader to pass in blade struct.
-The vertex shader for grass blade takes in for vec4s: v0, v1, v2, and up. Where v0.xyz is the Bezier Curve v0 position, v1.xyz is the Bezier Curve v1 position, and v2.xyz is the Bezier curve v2 position. up.xyz stores blade up vector. In addition to three control points, we need an orientation to represent the facing direction of each grass blade, and that is stored in v0.w. v1.w stores blade height. v2.w stores blade width, and up.w stores stiffness coefficient. v1, and v2 will be updated by compute shader every simulation step, so we can see grass moving by wind nicely. v0, v1, v2, and up are passed onto tessellation control shader.
+  * The vertex shader for grass blade takes in for vec4s: v0, v1, v2, and up. Where v0.xyz is the Bezier Curve v0 position, v1.xyz is the Bezier Curve v1 position, and v2.xyz is the Bezier curve v2 position. up.xyz stores blade up vector. In addition to three control points, we need an orientation to represent the facing direction of each grass blade, and that is stored in v0.w. v1.w stores blade height. v2.w stores blade width, and up.w stores stiffness coefficient. v1, and v2 will be updated by compute shader every simulation step, so we can see grass moving by wind nicely. v0, v1, v2, and up are passed onto tessellation control shader.
 
-* Tessellation control shader to apply tessellation inner and outer levels.
-Inside tessellation control shader, I set the inner vertical level to be 8, and innter horizontal level to be 2. And the outer level to be 8,2,8,2 for 4 egdes. This should subdivide a patch into enough detailed shapes to show the curvature of grass blade.
+* Tessellation control shader to set tessellation inner and outer levels.
+  * Inside tessellation control shader, I set the inner vertical level to be 8, and innter horizontal level to be 2. And the outer level to be 8,2,8,2 for 4 egdes. This should subdivide a patch into enough detailed shapes to show the curvature of grass blade.
 
-* Tessellation evaluation shader to generate new vertex using triangle interpolation.
-The tessellation evaluation shader will compute the world space vertex position based on tessellation uv coordinates and convert it from world space to screen space. Here we used De Casteljau to interpolate the point on the Bezier curve controlled by v0, v1, and v2, using tessellation v coordinates as the interpolation parameters. Since we have level of 8 along v direction, we should get a nice bezier curve with 8 points. Then we treat the patch as a triangle and we use triangle interpolation to get a final vertex position based on u and v. Finally we pass the new vertex position as well as the normal vector of the vertex to fragment shader.
+* Tessellation evaluation shader to generate new vertex with tessellation uv coordinates.
+  * The tessellation evaluation shader will compute the world space vertex position based on tessellation uv coordinates and convert it from world space to screen space. Here we used De Casteljau to interpolate the point on the Bezier curve controlled by v0, v1, and v2, using tessellation v coordinates as the interpolation parameters. Since we have level of 8 along v direction, we should get a nice bezier curve with 8 points. Then we treat the patch as a triangle and we use triangle interpolation to get a final vertex position based on u and v. Finally we pass the new vertex position as well as the normal vector of the vertex to fragment shader.
 
 * fragment shader to color the fragment with Lambert shading model.
-Inside fragment shader, I assume there is a virtual light source with light direction pointing to (-1,-1,0). I give grass blades a base color of (0.18, 0.48, 0.04), and multiplies it with the clamp(0.2, 1, dot(lightDir, vertexNormal)).
+  * Inside fragment shader, I assume there is a virtual light source with light direction pointing to (-1,-1,0). I give grass blades a base color of (0.18, 0.48, 0.04), and multiplies it with the clamp(0.2, 1, dot(lightDir, vertexNormal)).
 
 * Compute Shader to apply forces to generate updated Bezier curve shape, and cull blades that won't be rendered on     screen based on orientation, frustum visibility and distance visibility. 
   * I use 3 control points, a width direction, and a height to represent each grass blade, as shown in the graph below:
@@ -42,6 +42,7 @@ Inside render.cpp, I created Compute DescriptorSetLayout, which defines the thre
 ### Performance Analysis
 ![Performance](/img/performance.PNG)
 <p align="center"><b>Grass Renderer Performance Analysis</b></p>
-The timer were added to compute how much time each frame takes to render. With culling methods, the render efficiency improves as the blades number goes up. But when blades number is below 2^17, there is no much difference between culling blades and no culling. I set the far culling distance to be 14.f, so it will cull all blades fall inside the depth betwwen 14.f and 15.f in this render scene setup, which leads to best performance improvement among all culling methods. 
+* The timer were added to compute how much time each frame takes to render. With culling methods, the render efficiency improves as the blades number goes up. But when blades number is below 2^17, there is no much difference between culling blades and no culling. I set the far culling distance to be 14.f, so it will cull all blades fall inside the depth betwwen 14.f and 15.f in this render scene setup, which leads to best performance improvement among all culling methods. 
 
-The renderer works well for blades numbers up to 2^19. Starting from 2^21 the frame rate is so low that the grass movements are not smooth natural anymore. As the blades number goes up, the grass will also occlude each other, leading to unnatural visual effect.
+* Future Improvement work
+  The renderer works well for blades numbers up to 2^19. Starting from 2^21 the frame rate is so low that the grass movements are not smooth natural anymore. As the blades number goes up, the grass will also occlude each other, leading to unnatural visual effect. When the grass number increases, adjacent grass blades collide with each other, and the rendered result showing grass blades going into each other.
