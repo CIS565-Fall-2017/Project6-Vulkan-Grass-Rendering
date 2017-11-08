@@ -65,7 +65,7 @@ We also make a comparison between different culling methods(camera position fixe
 
 ![](img/Different_culling_method.png)
 
-As we can see, frustrum culling test produce greatest effect on the overall efficiency and the effect of distance culling is relatively small. However, in my opinion, it is not appropriate to generally say which culling method brings the greatest benefit to the overall efficiency, because they are used to deal with different cases. For example, distance culling works for huge meadowland, orientation culling works well when the camera(eye) is inside the grass and frustrum culling works for the case that camera cannot capture the whole grass land. Here since the scene we create is not huge enough, distance culling may not produce great effect. But generally speaking, the effect for frustrum culling test should be relatively obvious, because in most cases, our camera frustrum won't cover the whole grass land. 
+As we can see, frustum culling test produce greatest effect on the overall efficiency and the effect of distance culling is relatively small. However, in my opinion, it is not appropriate to generally say which culling method brings the greatest benefit to the overall efficiency, because they are used to deal with different cases. For example, distance culling works for huge meadowland, orientation culling works well when the camera(eye) is inside the grass and frustum culling works for the case that camera cannot capture the whole grass land. Here since the scene we create is not huge enough, distance culling may not produce great effect. But generally speaking, the effect for frustum culling test should be relatively obvious, because in most cases, our camera frustum won't cover the whole grass land. 
 
 
 ### Credits
