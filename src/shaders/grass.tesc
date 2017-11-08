@@ -51,10 +51,10 @@ void main() {
 	// Note: These are per-patch outputs, only need to be written once
 	// QUESTION: Why not put it in "if(gl_InvocationID == 0)"???
 	// Then you only write them from a single execution thread (http://prideout.net/blog/?p=48)
-    gl_TessLevelInner[0] = 1;	// Horizontal tessellation
-    gl_TessLevelInner[1] = 4;	// Vertical tessellation, make this the same
-    gl_TessLevelOuter[0] = 4;	// Vertical edge 0-3, make this the same
-    gl_TessLevelOuter[1] = 1;	// Horizontal edge 2-3
-    gl_TessLevelOuter[2] = 4;	// Vertical edge 1-2, make this the same
-    gl_TessLevelOuter[3] = 1;	// Horizontal edge 0-1
+    gl_TessLevelInner[0] = 2.0;	// Horizontal tessellation
+    gl_TessLevelInner[1] = 5.0;	// Vertical tessellation, make this the same
+    gl_TessLevelOuter[0] = 5.0;	// Vertical edge 0-3, make this the same
+    gl_TessLevelOuter[1] = 2.0;	// Horizontal edge 2-3
+    gl_TessLevelOuter[2] = 5.0;	// Vertical edge 1-2, make this the same
+    gl_TessLevelOuter[3] = 2.0;	// Horizontal edge 0-1
 }

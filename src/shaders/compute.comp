@@ -59,6 +59,7 @@ bool inBounds(float value, float bounds) {
 // Constants 
 const float ACCELERATION = 9.8;
 const vec4 GRAVITY = vec4(0.0, -1.0, 0.0, ACCELERATION);
+const float PI = 3.14159265;
 
 void main() {
 	// Reset the number of blades to 0
@@ -110,19 +111,23 @@ void main() {
 	vec3 r = (iv2 - v2_pos) * stiffness;
 
 	// ---------- Calculate wind ----------
-	vec3 windDir = normalize(vec3(1.0, 0.0, 0.0));
-	float windSpeed = 10.0;
 
+	// Calculate wind equation based on position
 	// https://www.cg.tuwien.ac.at/research/publications/2013/JAHRMANN-2013-IGR/JAHRMANN-2013-IGR-paper.pdf
-	float c1 = 2.0;
-	float c2 = 2.0;
-	float c3 = 2.0;
-	float epsilon = 0.00001;
-	float a_p = (3.14159265 * v0_pos.x) + totalTime + ((3.14159265 / 4.0) / (abs(cos(3.14159265 * v0_pos.z * c2)) + epsilon));
-	float w_p = sin(c1 * a_p) * cos(c3 * a_p);
 
+	vec3 windDir = normalize(vec3(1.0, 0.0, 1.0));
+	float windSpeed = 5.0;
+	
+	float c1 = 0.2;
+	float c2 = 0.2;
+	float c3 = 0.2;
+	float epsilon = 0.00001;
+	float a_p = (PI * v0_pos.x) + totalTime + ((PI / 4.0) / (abs(cos(PI * v0_pos.z * c2)) + epsilon));
+	float w_p = sin(c1 * a_p) * cos(c3 * a_p);
+	
 	vec3 windStrength = windDir * windSpeed * w_p;
 
+	// Calculate alignment 
 	float dirAlign = 1.0 - abs(dot(normalize(windStrength) , normalize(v2_pos - v0_pos)));
 	float heightRatio = dot((v2_pos - v0_pos), upVec) / height;
 	float alignment = dirAlign * heightRatio;
@@ -132,28 +137,34 @@ void main() {
 	// ---------- Calculate total force ----------
 	vec3 tv2 = (g + r + w) * deltaTime;
 
-	// ---------- Update v2 ----------
-	vec3 v2 = v2_pos + tv2;
+	// ---------- Update v2_pos ----------
+	v2_pos += tv2;
 
 	// ---------- State validation ----------
-	// Condition 1: Make sure v2 is above local plane 
-	v2 = v2 - upVec * min(dot(upVec, v2 - v0_pos), 0.0);
+	// Condition 1: Make sure v2_pos is above local plane 
+	v2_pos = v2_pos - upVec * min(dot(upVec, v2_pos - v0_pos), 0.0);
 
-	// Condition 2: Set v1 pos according to v2
-	float lproj = length(v2 - v0_pos - upVec * dot(v2 - v0_pos, upVec));
-	vec3 v1 = v0_pos + (height * upVec) * max( (1 - lproj / height) , (0.05 * max(lproj / height, 1.0)) );
+	// Condition 2: Set v1_pos according to v2_pos
+	float lproj = length(v2_pos - v0_pos - upVec * dot(v2_pos - v0_pos, upVec));
+	v1_pos = v0_pos + height * upVec * max( (1 - lproj / height) , (0.05 * max(lproj / height, 1.0)) );
 
 	// Condition 3: Length of curve must be equal to height of grass blade
-	float L0 = distance(v0_pos, v2);
-	float L1 = distance(v0_pos, v1) + distance(v1, v2);
+	float L0 = distance(v0_pos, v2_pos);
+	float L1 = distance(v0_pos, v1_pos) + distance(v1_pos, v2_pos);
 	float n = 2.0;	// Since this is a 2nd degree bezier curve
-	float L = (2.0 * L0 + (n - 1.0) * L1) / (n + 1.0);
+	float L = ((2.0 * L0) + (n - 1.0) * L1) / (n + 1.0);
 
 	// Final corrections 
 	float ratio = height / L;
-	currBlade.v1.xyz = v0_pos + ratio * (v1 - v0_pos);
-	currBlade.v2.xyz = currBlade.v1.xyz + ratio * (v2 - v1);
-	
+	vec3 v1_corr = v0_pos + ratio * (v1_pos - v0_pos);
+	vec3 v2_corr = v1_corr + ratio * (v2_pos - v1_pos);
+	blades[index].v1.xyz = v1_corr;
+	blades[index].v2.xyz = v2_corr;
+
+	// THIS IS WRONG - LESSON LEARNED
+	// THIS IS CHANGING THE COPY
+	//currBlade.v1.xyz = v0_pos + ratio * (v1_pos - v0_pos);
+	//currBlade.v2.xyz = currBlade.v1.xyz + ratio * (v2_pos - v1_pos);
 	
 	// ---------------------------------------- CULLING TESTS ---------------------------------------- 
 

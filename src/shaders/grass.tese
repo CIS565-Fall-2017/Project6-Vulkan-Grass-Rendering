@@ -36,7 +36,7 @@ void main() {
 	// Direction vector along width of the blade
 	float width = tc_v2[0].w;
 	float theta = tc_v0[0].w;
-	vec3 bitangent = vec3(cos(theta), 0.0, sin(theta));
+	vec3 bitangent = vec3(sin(theta), 0.0, cos(theta));
 
 	vec3 a = tc_v0[0].xyz + v * (tc_v1[0].xyz - tc_v0[0].xyz);
 	vec3 b = tc_v1[0].xyz + v * (tc_v2[0].xyz - tc_v1[0].xyz);
@@ -55,14 +55,14 @@ void main() {
 	// float t = u;
 
 	// Triangle
-	// float t = u + (0.5 * v) - (u * v);
+	float t = u + (0.5 * v) - (u * v);
 
 	// Quadratic
 	// float t = u - pow(u * v, 2);
 
 	// Triangle-tip
-	float tau = 0.5;
-	float t = 0.5 + (u - 0.5) * (1.0 - (max(v - tau, 0.0) / (1.0 - tau)));
+	// float tau = 0.5;
+	// float t = 0.5 + (u - 0.5) * (1.0 - (max(v - tau, 0.0) / (1.0 - tau)));
 
 	vec3 position = mix(c0, c1, t);
 	te_position = vec4(position.xyz, 1.0);
