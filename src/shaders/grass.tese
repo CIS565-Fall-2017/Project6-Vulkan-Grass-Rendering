@@ -16,7 +16,7 @@ layout(location = 3) patch in vec4 bladeBit;
 
 layout(location = 0) out vec4 Position;
 layout(location = 1) out vec4 Normal;
-layout(location = 2) out vec4 bladeBit_out;
+//layout(location = 2) out vec4 bladeBit_out;
 void main() {
     float u = gl_TessCoord.x;
     float v = gl_TessCoord.y;
@@ -33,7 +33,7 @@ void main() {
 
     vec3 t0 = normalize(b - a);
 	Normal = vec4(normalize(cross(t1, t0)),v);
-	bladeBit_out=bladeBit;
+	//bladeBit_out=bladeBit;
 
 	float t = u + 0.5*v-u*v  ;
     Position.xyz = (1.0 - t)*c0 + t*c1;

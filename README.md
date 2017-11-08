@@ -1,7 +1,7 @@
 Vulkan Grass Rendering
 ========================
 
-**University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 5**
+**University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 6**
 
 * Yi Guo
 * Tested on:  Windows 8.1, Intel(R) Core(TM)i5-4200M CPU @ 2.50GHz 8GB, NVIDIA GeForce 840M (Personal Notebook)
@@ -53,13 +53,16 @@ In this part, we compare different culling methods and the overall time cost for
 
 * **No Culling VS Culling**
 
-Generally speaking, as the number of blades become larger and larger, the time cost will increase gradually. To avoid rendering the grass blades that don't contribute to a given frame, we can do the culling tests in the compute shader to filter out those blades. We make a plot to show the benefit of doing culling tests.
+Generally speaking, as the number of blades become larger and larger, the time cost will increase gradually. To avoid rendering the grass blades that don't contribute to a given frame, we can do the culling tests in the compute shader to filter out those blades. We make a plot to show the benefit of doing culling tests.     
+![](img/culling_vs_no_culling.png)
 
 As the plot shows, when the number of blades is relatively small, doing culling test may not produce great influence on the overall efficiency. However, when the blade number becomes really huge, doing culling test will dramatically decrease the time cost, which proves our statement above.
 
 * **Different Culling methods**
 
 We also make a comparison between different culling methods(camera position fixed) and make a plot below.
+
+![](img/Different_culling_method.png)
 
 As we can see, frustrum culling test produce greatest effect on the overall efficiency and the effect of distance culling is relatively small. However, in my opinion, it is not appropriate to generally say which culling method brings the greatest benefit to the overall efficiency, because they are used to deal with different cases. For example, distance culling works for huge meadowland, orientation culling works well when the camera(eye) is inside the grass and frustrum culling works for the case that camera cannot capture the whole grass land. Here since the scene we create is not huge enough, distance culling may not produce great effect. But generally speaking, the effect for frustrum culling test should be relatively obvious, because in most cases, our camera frustrum won't cover the whole grass land. 
 
