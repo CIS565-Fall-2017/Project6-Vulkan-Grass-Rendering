@@ -41,9 +41,20 @@ In this project, compute shaders were used to perform physics calculations on Be
 
 ### Varying blade count 
 
+![](renders/blades-graph.PNG)
+
+![](renders/blades-chart.PNG)
+
+When rendering frames with varying blade count, there seems to be a huge spike after 1 << 21 blades (2097152). 
+
 
 ### Culling test comparison
 
+![](renders/cull-graph.PNG)
+
+![](renders/cull-chart.PNG)
+
+Here also, there seems to be a huge spike after 1 << 21 blades (2097152). What's interesting to note is that the culling tests don't seem to perform much differently from each other until you get to 1 << 21 number of blades. But even at 1 << 23, this varies a lot. From View Frustum not being the most optimized, the orientation culling technique becomes the least optimized at 1 << 23 blades.
 
 ## Resources
 
