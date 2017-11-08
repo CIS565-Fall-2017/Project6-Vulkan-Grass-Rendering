@@ -11,7 +11,21 @@ In this project, we use compute shaders to perform physics calculations on Bezie
 
 
 ### ScreenShots
+* **Demo**
+![](./img/grass_demo.gif)
 
+* **Debug**
+
+<table class="image">
+<tr>
+  <td>Normal </td>
+  <td>Bitangent </td>
+</tr>
+<tr>
+  <td><img src="img/normal.gif"/></td>
+  <td><img src="img/bitant.gif"/></td>
+</tr>
+</table>
 
 ### Method
 

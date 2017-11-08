@@ -9,6 +9,7 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 // TODO: Declare fragment shader inputs
 layout(location = 0) in vec4 position;
 layout(location = 1) in vec4 normal;
+layout(location = 2) in vec4 bladeBit;
 
 layout(location = 0) out vec4 outColor;
 
@@ -23,5 +24,7 @@ void main() {
 	vec4 mixed_col = mix(darkG, brightG, clamp(normal.w, 0.0, 1.0));
     vec4 ambient_col = vec4(vec3(0.1), 1.0);
 
-    outColor = ambient_col + cosValue*mixed_col;
+	//outColor=normal;
+	outColor=bladeBit;
+	//outColor = ambient_col + cosValue*mixed_col;
 }
