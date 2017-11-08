@@ -107,7 +107,7 @@ Similar to orientation culling, grass blades at large distances from the camera 
 ![](readmeImages/CullingNoCulling.png)
 ![](readmeImages/CullingNoCullingData.png)
 
-The graph clearly show us that culling can lead to 2-3X performance boost.
+The graph clearly show us that culling can lead to a 2-3x performance boost.
 
 ![](readmeImages/CullingComparison.png)
 ![](readmeImages/CullingComparisonData.png)
