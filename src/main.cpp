@@ -5,11 +5,25 @@
 #include "Camera.h"
 #include "Scene.h"
 #include "Image.h"
+#include<sstream>
 
 Device* device;
 SwapChain* swapChain;
 Renderer* renderer;
 Camera* camera;
+
+std::string IntToString(int num)
+ {
+	std::stringstream ss;
+	ss << num;
+	return ss.str();
+}
+std::string FloatToString(double num)
+ {
+	std::stringstream ss;
+	ss << num;
+	return ss.str();
+}
 
 namespace {
     void resizeCallback(GLFWwindow* window, int width, int height) {
@@ -143,8 +157,25 @@ int main() {
     glfwSetMouseButtonCallback(GetGLFWWindow(), mouseDownCallback);
     glfwSetCursorPosCallback(GetGLFWWindow(), mouseMoveCallback);
 
+
+	double origin = 0.f;
+	double current = 0.f;
+	double fps = 0;
+	int frame = 0;
+
     while (!ShouldQuit()) {
-        glfwPollEvents();
+		glfwPollEvents();
+		current = (double)time(NULL);
+		frame++;
+		const double elapsed = current - origin;
+		if (elapsed >= 1) {
+			fps = frame / elapsed;
+			frame = 0;
+			origin = current;
+			std::string title = "Vulkan Grass Rendering | " + FloatToString(fps) + " FPS " + FloatToString(1000.f / (double)fps) + " ms";
+			glfwSetWindowTitle(GetGLFWWindow(), title.c_str());
+		}
+		
         scene->UpdateTime();
         renderer->Frame();
     }

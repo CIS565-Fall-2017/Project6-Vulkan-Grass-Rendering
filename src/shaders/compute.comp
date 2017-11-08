@@ -36,21 +36,123 @@ struct Blade {
 // 	  uint firstInstance; // = 0
 // } numBlades;
 
+
+//input
+layout(set = 2, binding = 0) buffer Blades {
+ 	 Blade blades[];
+};
+
+//output
+layout(set = 2, binding = 1) buffer CulledBlades {
+ 	Blade culledBlades[];
+};
+
+
+layout(set = 2, binding = 2) buffer NumBlades {
+ 	  uint vertexCount;   // Write the number of blades remaining here
+ 	  uint instanceCount; // = 1
+ 	  uint firstVertex;   // = 0
+ 	  uint firstInstance; // = 0
+} numBlades;
+
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
+}
+vec3 interpolation(vec3 v0, vec3 v1, vec3 v2, float u)
+{
+	vec3 a = (1-u)*v0 + u*v1;
+	vec3 b = (1-u)*v1 + u*v2;
+	return (1-u)*a + u*b;
 }
 
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
+		numBlades.vertexCount = 0;
 	}
 	barrier(); // Wait till all threads reach this point
 
     // TODO: Apply forces on every blade and update the vertices in the buffer
+	//v0.w holds orientation, v1.w holds height, v2.w holds width, and up.w holds the stiffness coefficient.
+	uint index = gl_GlobalInvocationID.x;
+ 	Blade blade = blades[index];
+
+	//Basic control points and parameters
+ 	vec3 v0 = blade.v0.xyz;
+ 	vec3 v1 = blade.v1.xyz;
+ 	vec3 v2 = blade.v2.xyz;
+ 	vec3 up = blade.up.xyz;
+	vec3 ref=vec3(sin(blade.v0.w), 0, cos(blade.v0.w));
+ 	float height = blade.v1.w;
+ 	vec3 faceDir = normalize(cross(up, ref));
+ 
+	//Recovery Force
+ 	vec3 Iv2 = v0 + up * height;
+ 	//vec3 recoveryForce = (Iv2 - v2) * blade.up.w * 1.5/ min(height, 1.5);
+	vec3 recoveryForce = (Iv2 - v2) * blade.up.w ;
+
+ 	//Gravity Force
+ 	vec3 gE = vec3(0,-9.8,0);
+ 	vec3 gF = faceDir * length(gE) * 0.25;
+ 	vec3 gravityForce = gE + gF;
+
+ 	
+ 	//Wind Force
+ 	vec3 windDirection = normalize(vec3(1, 0, 0)); 
+	float windStrength = 10.0;
+ 	float windSpeed = 8.0;	
+	float directionalAlignment = 1.0 -  abs(dot(windDirection ,normalize(v2 - v0)));
+ 	float heightRatio = dot(v2 - v0, up) / height; 
+	float waveWidth = 5.0;
+ 	float waveStrength = cos( (dot( windDirection, vec3(v0.x, 0.0, v0.z)) + totalTime*windSpeed) /waveWidth);
+ 	vec3 windForce = windDirection * directionalAlignment * heightRatio * windStrength * waveStrength;
+ 	
+ 
+ 	//Update v1,v2
+ 	vec3 new_v2 = v2 + (gravityForce + recoveryForce + windForce) * deltaTime;
+ 	new_v2 = new_v2 - up*min(dot(up, new_v2 - v0), 0.0);
+	float lproj=length(new_v2 - v0 - up * dot(new_v2 - v0, up));
+ 	vec3 new_v1 = v0 + height* up* max(1.0 - lproj/height , 0.05*max(lproj/height,  1.0));
+ 
+ 	float n = 3.0;
+ 	float L0 = length(new_v2-v0);
+ 	float L1 = length(new_v2-new_v1) + length(new_v1-v0);
+ 	float L = (2.0*L0 + (n - 1.0)*L1) / (n + 1.0);
+	float r = height / L;
+ 	 	
+    blade.v1.xyz = v0 + r*(new_v1 - v0);
+ 	blade.v2.xyz = blade.v1.xyz + r*(new_v2 - new_v1);
+    blades[index] = blade;
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
+	
+	v0 = blade.v0.xyz;
+ 	v1 = blade.v1.xyz;
+ 	v2 = blade.v2.xyz;
+	vec4 cameraPos=inverse(camera.view) * vec4(0.0, 0.0, 0.0, 1.0);
+ 	//Orientation culling
+	vec3 dirc=normalize(cameraPos.xyz - v0);
+ 	bool OrientationTest = abs(dot(faceDir, dirc)) > 0.9;	
+ 
+ 	//View-frustum culling
+ 	bool FrustumTest; 
+	vec4 v0_prime = camera.proj * camera.view * vec4(v0, 1.0);
+	float h= v0_prime.w + 0.5;
+	FrustumTest=(!inBounds(v0_prime.x, h)) || (!inBounds(v0_prime.y, h)) || (!inBounds(v0_prime.z, h));
+ 
+ 
+ 	//Distance culling
+ 	bool DistanceTest = true;
+	float distanceLevel=10.0;
+	float d_proj = length(v0 - cameraPos.xyz - up * dot(up, v0 - cameraPos.xyz));
+	float dmax=50.0;
+ 	DistanceTest=mod(index, distanceLevel) > floor(distanceLevel * (1 - (d_proj /dmax)));
+	//OrientationTest || FrustumTest || DistanceTest
+ 	if(!(OrientationTest || FrustumTest || DistanceTest))	      
+ 	{
+ 		culledBlades[atomicAdd(numBlades.vertexCount , 1)] = blade;
+ 	}	
 }
