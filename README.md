@@ -75,11 +75,6 @@ Before `v2` can be translated, the new state must first be corrected for errors.
 
 ## Culling
 
-![](readmeImages/CullingNoCulling.png)
-![](readmeImages/CullingNoCullingData.png)
-![](readmeImages/CullingComparison.png)
-![](readmeImages/CullingComparisonData.png)
-
 Because simulating thousands upon thousands of grass blades can get computationally expensive we want to cull some of them away. In this project 3 culling techniques were implemented. 
 
 ### Orientation culling
@@ -107,9 +102,14 @@ As camera zooms in on the scene, more blades move outside of the viewing frustum
 
 Similar to orientation culling, grass blades at large distances from the camera can be smaller than the size of a pixel and thus can lead to aliasing artifacts. To solve this, we reduce grass density the further we get from the camera.
 
-| ![](readmeImages/grassDistanceCulling1.png) | ![](readmeImages/grassDistanceCulling2.png) | 
-| ------------------------------------------- | ------------------------------------------- |
-| Blades Rendered | Blades Rendered | 
-| 61,239 | 36,321 | 
+## Performance Analysis
 
-When the camera is zoomed in, few blades of grass are culled from the maximum number of instances (65,536), but as we zoom out, we can decrease the grass density without sacrificing realism: the right image does not appear less dense than the first two even though it has ~10,000 less blades of grass. The comparison of rendered blade count is restricted to only distance culling, even though in the full pipeline, the first image would also cull outside of the view frustum.   
+![](readmeImages/CullingNoCulling.png)
+![](readmeImages/CullingNoCullingData.png)
+
+The graph clearly show us that culling can lead to 2-3X performance boost.
+
+![](readmeImages/CullingComparison.png)
+![](readmeImages/CullingComparisonData.png)
+
+As can be seen in the graph, The various culling methods on their own contribute to some performance gain but not as much as all 3 of them together. Amongst the culling methods, orientation culling is the most effective.
