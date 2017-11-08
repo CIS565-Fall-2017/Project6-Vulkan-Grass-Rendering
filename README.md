@@ -57,7 +57,6 @@ Each Bezier curve has three control points.
 ### Simulating Forces
 
 #### Gravity
-
 Total gravity on the grass blade: environmental gravity + front gravity, which is the contribution of the gravity with respect to the front facing direction of the blade.
 
 #### Recovery
@@ -103,7 +102,7 @@ Here is a simple demonstration:
 
 Test window size: Width: 1129; Height: 701;
 
-Though the result shows that among 3 different methods, orientation one is better than view-frustum one, view-frustum one is better than distance one, the efficiency of these culling methods strongly depends on the camera. For example, if the camera is close enough, then lots of grass will be outside the view-frustum. However, if the camera is too far, then all the grass will be inside the view-frustum, so it won't be as good as other methods unter such circumstance.
+Though the result shows that among 3 different methods, orientation one is better than view-frustum one, view-frustum one is better than distance one, the efficiency of these culling methods strongly depends on the camera. For example, if the camera is close enough, then lots of grass will be outside the view-frustum. However, if the camera is too far, then all the grass will be inside the view-frustum, so it won't be as good as other methods under such circumstance.
 
 
 
