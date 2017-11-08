@@ -86,8 +86,8 @@ Because simulating thousands upon thousands of grass blades can get computationa
 
 Grass blades are very thin, so when the blades are viewed from the side the blades could be rendered such that parts of the blades are smaller than the size of a pixel. This leads to aliasing artifacts. Therefore blades oriented at angles almost perpendicular to the view vector are culled. 
 
-| ------------------------------------- | ------------------------------------- |
 | ![](readmeImages/grassOrientationCulling1.png) | ![](readmeImages/grassOrientationCulling2.png) | 
+| ---------------------------------------------- | ---------------------------------------------- |
 | 65,536 | 20,546 | 
 
 The above scene is shown at three different viewing angles and all the blades in the scene are facing the same direction. When viewed head on (left), all the blades are rendered, but as the scene rotates, blades are culled based on their orientation with respect to the camera. 
@@ -96,8 +96,8 @@ The above scene is shown at three different viewing angles and all the blades in
 
 Blades that are outside of the view-frustum should be culled because they will never be rendered on screen. This means we can avoid doing computation for all the grass blades outside of the view-frustum. To determine if a blade is in frame, we compare the visibility of the first and last control points and a weighted midpoint instead of `v1` because `v1` does not lie on the curve.
 
-| --------------------------------- | --------------------------------- |
 | ![](readmeImages/grassFrustumCulling1.png) | ![](readmeImages/grassFrustumCulling2.png) 
+| ------------------------------------------ | ------------------------------------------ |
 | Blades Rendered | Blades Rendered | 
 | 65,536 | 2,103 | 
 
@@ -107,8 +107,8 @@ As camera zooms in on the scene, more blades move outside of the viewing frustum
 
 Similar to orientation culling, grass blades at large distances from the camera can be smaller than the size of a pixel and thus can lead to aliasing artifacts. To solve this, we reduce grass density the further we get from the camera.
 
-| -------------------- | -------------------- |
 | ![](readmeImages/grassDistanceCulling1.png) | ![](readmeImages/grassDistanceCulling2.png) | 
+| ------------------------------------------- | ------------------------------------------- |
 | Blades Rendered | Blades Rendered | 
 | 61,239 | 36,321 | 
 
