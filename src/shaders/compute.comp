@@ -130,9 +130,9 @@ void main() {
     culled = true;
   }
 
-  float max_dist = 20;
+  float max_dist = 30;
   float dist = -(camera.view * vec4(v0, 1.0)).z;
-  if (dist > max_dist) {
+  if (index % int(max_dist) < dist) {
     culled = true;
   }
 
