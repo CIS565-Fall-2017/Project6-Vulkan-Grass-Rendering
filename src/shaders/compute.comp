@@ -150,7 +150,7 @@ void main() {
 	float d_proj = length(v0 - cameraPos.xyz - up * dot(up, v0 - cameraPos.xyz));
 	float dmax=50.0;
  	DistanceTest=mod(index, distanceLevel) > floor(distanceLevel * (1 - (d_proj /dmax)));
- 
+	//OrientationTest || FrustumTest || DistanceTest
  	if(!(OrientationTest || FrustumTest || DistanceTest))	      
  	{
  		culledBlades[atomicAdd(numBlades.vertexCount , 1)] = blade;
