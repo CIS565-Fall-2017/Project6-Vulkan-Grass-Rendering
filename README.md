@@ -64,7 +64,7 @@ If all three points are outside of the view-frustum, we will cull the grass blad
 
 The further a blade of grass is, the fewer we need at that depth to see it properly. This allows for a simple heuristic where the further away a blade of grass is, the more likely it is to be culled.
 
-![](distance_culling.gif)
+![](./img/distance_culling.gif)
 
 ### Tessellating Bezier curves into grass blades
 
@@ -82,7 +82,7 @@ Once the number of blades passed 2^20, the simulation essentially broke as the d
 
 #### Culling Tests
 All of these tests were done with 2^13 blades.
-![](culling.png)
+![](./img/culling.png)
 
 I noticed no effect on performace from culling. Neither at lower numbers of blades, nor at high numbers of blades. I noticed some improvement when each culling method was "overperforming". For example, if I zoomed out so that distance culling removed most of the blades, there was significant speed up. The other situation that led to significant speed up was looking straight down as the view culling was highly effective. Other than those two cases, performance was the same within measrement margin. 
 I suspect this is due to the limited perfomance available on my computer with a netbook processor and onboard GPU.
