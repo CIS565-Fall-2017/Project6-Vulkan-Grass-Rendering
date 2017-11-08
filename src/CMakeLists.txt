@@ -42,6 +42,15 @@ foreach(SHADER_SOURCE ${SHADER_SOURCES})
         )
         ExternalTarget("Shaders" ${fname}.spv)
         add_dependencies(vulkan_grass_rendering ${fname}.spv)
+    else(WIN32)
+        get_filename_component(fname ${SHADER_SOURCE} NAME)
+        add_custom_target(${fname}.spv
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADER_DIR} &&
+            $ENV{VULKAN_SDK}/bin/glslangValidator -V ${SHADER_SOURCE} -o ${SHADER_DIR}/${fname}.spv
+            SOURCES ${SHADER_SOURCE}
+        )
+        ExternalTarget("Shaders" ${fname}.spv)
+        add_dependencies(vulkan_grass_rendering ${fname}.spv)
     endif(WIN32)
 
     # TODO: Build shaders on not windows

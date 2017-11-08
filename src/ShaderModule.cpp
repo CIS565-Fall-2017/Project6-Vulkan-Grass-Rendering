@@ -1,5 +1,6 @@
 #include <fstream>
 #include "ShaderModule.h"
+#include <iostream>
 
 namespace {
     std::vector<char> readFile(const std::string& filename) {

@@ -1,5 +1,8 @@
 #include <stdio.h>
+#include <cstdlib>
 #include "Window.h"
+
+#define EXIT_FAILURE 1
 
 namespace {
     GLFWwindow* window = nullptr;
