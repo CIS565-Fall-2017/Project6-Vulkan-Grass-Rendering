@@ -119,8 +119,8 @@ void main() {
     
     // Orientation culling
     vec3 widthDir = normalize(vec3(cos(currentBladeIn.v0.w + 1.57079632679), 0, sin(currentBladeIn.v0.w + 1.57079632679))); // that's PI / 2
-    widthDir = normalize((camera.view * vec4(widthDir, 0)).xyz);
-    if(abs(widthDir.z) < 0.2) { // effectively dot w/ (0, 0, 1)
+    widthDir = normalize((camera.view * vec4(widthDir, 0)).xyz); // put it in view space
+    if(abs(dot(normalize((camera.view * vec4(bladeOut.v0.xyz, 1.0)).xyz), widthDir)) > 0.9) {
         shouldCull = true;
     }
 
@@ -151,16 +151,14 @@ void main() {
     }
 
     // Distance culling
-    const float dMax = 10.0; // After this point, all blades are culled
+    const float dMax = 20.0; // After this point, all blades are culled
     const vec3 cameraPos = (inverse(camera.view) * vec4(0, 0, 0, 1)).xyz;
     const float dProj = length(bladeOut.v0.xyz - cameraPos - bladeOut.up.xyz * (dot(bladeOut.v0.xyz - cameraPos, bladeOut.up.xyz)));
-    const float bucket = floor((camera.view * vec4(bladeOut.v0.xyz, 1.0)).z / dMax);
-    shouldCull = mod(gl_GlobalInvocationID.x, bucket) < floor(bucket * (1.0 - dProj / dMax));
+    shouldCull = mod(gl_GlobalInvocationID.x, 8.0) > floor(8.0 * (1.0 - dProj / dMax));
 
     if(!shouldCull) {
         // Increment num blades
-        atomicAdd(numBlades.vertexCount, 1);
-        culledBlades.blades[gl_GlobalInvocationID.x] = bladeOut;
+        culledBlades.blades[atomicAdd(numBlades.vertexCount, 1)] = bladeOut;
     }
 
     blades.blades[gl_GlobalInvocationID.x] = bladeOut;
