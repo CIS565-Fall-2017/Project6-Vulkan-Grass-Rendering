@@ -31,7 +31,7 @@ All of the blade data is packed into 4 `vec4`s. The scalar values are packed int
 | v2.x | v2.y | v2.z | width |
 | up.x | up.y | up.z | stiffness |
 
-### Forces pre Grass Blade
+### Forces per Grass Blade
 
 Forces are first applied to the `v2` control point. Potential errors are corrected in the state validation stage. The total force applied is the sum of the gravity, recovery, and wind forces.  
 
@@ -40,7 +40,9 @@ Forces are first applied to the `v2` control point. Potential errors are correct
 Gravitational forces applied to each grass blade is a sum of the environmental gravity and the front gravity, which is the gravity with respect to the front facing direction of the blade - computed using the orientation. 
 
 `environmentalGravity = normalize(D.xyz) * D.w`
+
 `frontGravity = (0.25) * ||environmentalGravity|| * frontFacingDirection`
+
 `g = environmentalGravity + frontGravity`
 
 #### Recovery
@@ -48,6 +50,7 @@ Gravitational forces applied to each grass blade is a sum of the environmental g
 The grass blades were modelled to act like springs, i.e in accordance to Hooke's law, which means that there is a force that brings the blade back to equilibrium. This force acts in the direction of the original `v2` position, or `iv2`, and is scaled by the stiffness coefficient. The larger the stiffness coefficient, the more the force pushing the blade back to equilibrium. 
 
 `initial_v2 = v0 + up * height`
+
 `r = (initial_v2 - v2) * stiffness`
 
 #### Wind
@@ -55,10 +58,13 @@ The grass blades were modelled to act like springs, i.e in accordance to Hooke's
 Wind can be modelled as any function. A touch of randomness in the function allows every individual blade to look as if it reacts independently to forces. The random function being used in this implementation is:
 
 `vec3 windDirection = normalize(vec3(1, 1, 1));`
+
 `float windStrength = 10.0* rand(v0.xz) * cos(totalTime);`
 
 `float fd = 1.0 - abs(dot(windDirection, normalize(v2 - v0)));`
+
 `float fr = dot(v2 - v0, up) / height;`
+
 `float theta = fd * fr;`
 
 `vec3 wind = windStrength * windDirection * theta;`
@@ -67,7 +73,12 @@ Wind can be modelled as any function. A touch of randomness in the function allo
 
 Before `v2` can be translated, the new state must first be corrected for errors. First, `v2` must remain above `v0` because the blade cannot intersect the ground plane. In addition, the system insures that each blade always has a slight curvature, and the length of the Bezier curve is not longer than the fixed blade height. 
 
-## Culling tests
+## Culling
+
+![](readmeImages/CullingNoCulling.png)
+![](readmeImages/CullingNoCullingData.png)
+![](readmeImages/CullingComparison.png)
+![](readmeImages/CullingComparisonData.png)
 
 Because simulating thousands upon thousands of grass blades can get computationally expensive we want to cull some of them away. In this project 3 culling techniques were implemented. 
 
@@ -77,7 +88,7 @@ Grass blades are very thin, so when the blades are viewed from the side the blad
 
 |   |   |
 | ------------------------------------- | ------------------------------------- |
-| ![](readmeImages/grassOrientationCulling1.png) | ![](readmeImages/grassOrientationCulling3.png) | 
+| ![](readmeImages/grassOrientationCulling1.png) | ![](readmeImages/grassOrientationCulling2.png) | 
 | 65,536 | 19,366 | 
 
 The above scene is shown at three different viewing angles and all the blades in the scene are facing the same direction. When viewed head on (left), all the blades are rendered, but as the scene rotates, blades are culled based on their orientation with respect to the camera. 
@@ -105,10 +116,3 @@ Similar to orientation culling, grass blades at large distances from the camera 
 | 61,239 | 36,321 | 
 
 When the camera is zoomed in, few blades of grass are culled from the maximum number of instances (65,536), but as we zoom out, we can decrease the grass density without sacrificing realism: the right image does not appear less dense than the first two even though it has ~10,000 less blades of grass. The comparison of rendered blade count is restricted to only distance culling, even though in the full pipeline, the first image would also cull outside of the view frustum.   
-
-### Coming Soon, ie Monday Night
-
-![](readmeImages/CullingNoCulling.png)
-![](readmeImages/CullingNoCullingData.png)
-![](readmeImages/CullingComparison.png)
-![](readmeImages/CullingComparisonData.png)
