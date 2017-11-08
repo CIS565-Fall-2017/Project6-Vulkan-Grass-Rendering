@@ -1,5 +1,8 @@
 #include "BufferUtils.h"
 #include "Instance.h"
+#include <cstring>
+
+using std::memcpy;
 
 void BufferUtils::CreateBuffer(Device* device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
     // Create buffer

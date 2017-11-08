@@ -1,4 +1,5 @@
 #include <vector>
+#include <limits>
 #include "SwapChain.h"
 #include "Instance.h"
 #include "Device.h"

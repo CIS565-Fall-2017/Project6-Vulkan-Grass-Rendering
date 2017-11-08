@@ -29,28 +29,116 @@ struct Blade {
 // The project is using vkCmdDrawIndirect to use a buffer as the arguments for a draw call
 // This is sort of an advanced feature so we've showed you what this buffer should look like
 //
-// layout(set = ???, binding = ???) buffer NumBlades {
-// 	  uint vertexCount;   // Write the number of blades remaining here
-// 	  uint instanceCount; // = 1
-// 	  uint firstVertex;   // = 0
-// 	  uint firstInstance; // = 0
-// } numBlades;
+layout(set = 2, binding = 0) buffer InputBlades {
+  Blade blades[];
+} inputBlades;
+
+layout(set = 2, binding = 1) buffer CulledBlades {
+  Blade blades[];
+} culledBlades;
+
+layout(set = 2, binding = 2) buffer NumBlades {
+  uint vertexCount;   // Write the number of blades remaining here
+  uint instanceCount; // = 1
+  uint firstVertex;   // = 0
+  uint firstInstance; // = 0
+} numBlades;
 
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
 }
 
 void main() {
-	// Reset the number of blades to 0
-	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
-	}
-	barrier(); // Wait till all threads reach this point
+  uint index = gl_GlobalInvocationID.x;
+  // Reset the number of blades to 0
+  if (index == 0) {
+    numBlades.vertexCount = 0;
+  }
+  barrier(); // Wait till all threads reach this point
+  
+  // TODO: Apply forces on every blade and update the vertices in the buffer
+  Blade blade = inputBlades.blades[index];
+  vec3 v0 = blade.v0.xyz;
+  vec3 v1 = blade.v1.xyz;
+  vec3 v2 = blade.v2.xyz;
+  vec3 up = blade.up.xyz;
+  float height = blade.v1.w;
+  float orientation = blade.v0.w;
+  float stiff = blade.up.w;
 
-    // TODO: Apply forces on every blade and update the vertices in the buffer
+  vec3 f = vec3(cos(orientation), 0, sin(orientation));
 
-	// TODO: Cull blades that are too far away or not in the camera frustum and write them
-	// to the culled blades buffer
-	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
-	// You want to write the visible blades to the buffer without write conflicts between threads
+  // gravity 
+  vec3 gE = vec3(0, -1, 0);
+  vec3 gF = 0.25 * 1 * f;
+  vec3 g = gF + gE;
+
+  // restoration
+  vec3 iv2 = v0 + height * up;
+  vec3 r = (iv2 - v2) * stiff;
+  //r = vec3(0);
+
+  // wind
+  vec3 w = vec3(sin(totalTime/5 + v0.x + v0.z/2.0)+1, 0, 0);
+  //w = vec3(0);
+
+  vec3 tv2 = (g + r + w) * deltaTime;
+  vec3 n_v2 = blade.v2.xyz + tv2;
+
+  // validation
+
+  n_v2 = n_v2 - up * (min(dot(up, n_v2 - v0), 0));
+
+  float lProj = length(n_v2 - v0 - up * dot((n_v2 - v0), up));
+
+  blade.v1.xyz =
+      v0 + height * up * max(1 - lProj / height, 0.05 * max(lProj / height, 1));
+  blade.v2.xyz = n_v2;
+  
+  inputBlades.blades[index] = blade;
+
+  // TODO: Cull blades that are too far away or not in the camera
+  // frustum and write them
+  // to the culled blades buffer
+  // Note: to do this, you will need to use an atomic operation to
+  // read and update numBlades.vertexCount
+  // You want to write the visible blades to the buffer without write
+  // conflicts between threads
+
+  bool culled = false;
+
+  mat4 inv_view = inverse(camera.view);
+  vec3 dir_c = vec3(inv_view * vec4(0,0,1,0));
+  if (abs(dot(dir_c, f)) > 0.9) {
+    culled = true;
+  }
+
+  vec3 m = 0.25*v0 + 0.5*blade.v1.xyz + 0.25*n_v2;
+  vec4 view_p = camera.proj * camera.view * vec4(v0, 1);
+  vec4 view_m = camera.proj * camera.view * vec4(m, 1);
+  vec4 view_t = camera.proj * camera.view * vec4(n_v2, 1);
+  view_p /= view_p.w;
+  view_m /= view_m.w;
+  view_t /= view_t.w;
+
+  if ((!inBounds(view_p.x, 1) || !inBounds(view_p.y, 1) ||
+       !inBounds(view_p.z, 1)) &&
+      (!inBounds(view_m.x, 1) || !inBounds(view_m.y, 1) ||
+       !inBounds(view_m.z, 1)) &&
+      (!inBounds(view_t.x, 1) || !inBounds(view_t.y, 1) ||
+       !inBounds(view_t.z, 1))) {
+    culled = true;
+  }
+
+  float max_dist = 30;
+  float dist = -(camera.view * vec4(v0, 1.0)).z;
+  if (index % int(max_dist) < dist) {
+    culled = true;
+  }
+
+  if (!culled) {
+    culledBlades.blades[atomicAdd(numBlades.vertexCount, 1)] = blade;
+  }
+  //numBlades.vertexCount = 10;
+  ;
 }
