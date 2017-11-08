@@ -66,8 +66,13 @@ namespace {
 }
 
 int main() {
+
+	double seconds = time(NULL);
+	int fpstracker = 0;
+	int fps = 0;
+
     static constexpr char* applicationName = "Vulkan Grass Rendering";
-    InitializeWindow(640, 480, applicationName);
+    InitializeWindow(1366, 768, applicationName);
 
     unsigned int glfwExtensionCount = 0;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -145,6 +150,15 @@ int main() {
 
     while (!ShouldQuit()) {
         glfwPollEvents();
+		time_t seconds2 = time(NULL);
+		fpstracker++;
+		if (seconds2 - seconds >= 1) {
+			fps = fpstracker / (seconds2 - seconds);
+			fpstracker = 0;
+			seconds = seconds2;
+			std::string title = "Vulkan Grass Rendering | " + std::to_string((int)fps) + " FPS | " + std::to_string(1000.f / (float)fps) + " ms";
+			glfwSetWindowTitle(GetGLFWWindow(), title.c_str());
+		}
         scene->UpdateTime();
         renderer->Frame();
     }
