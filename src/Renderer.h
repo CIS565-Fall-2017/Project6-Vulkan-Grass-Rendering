@@ -41,6 +41,7 @@ public:
 
     void Frame();
 
+
 private:
     Device* device;
     VkDevice logicalDevice;
@@ -79,4 +80,14 @@ private:
 
     std::vector<VkCommandBuffer> commandBuffers;
     VkCommandBuffer computeCommandBuffer;
+
+
+	// Descriptor set info for blades 
+	VkDescriptorSetLayout computeDescriptorSetLayout;
+	// Since you can have more than 1 patch of grass in the scene, we have a vector of DescriptorSets (right now we have only 1)
+	std::vector<VkDescriptorSet> computeDescriptorSets;	
+
+	// Descriptor set for grass
+	std::vector<VkDescriptorSet> grassDescriptorSets;
+
 };

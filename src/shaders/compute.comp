@@ -36,21 +36,194 @@ struct Blade {
 // 	  uint firstInstance; // = 0
 // } numBlades;
 
+layout(set = 2, binding = 0) buffer Blades {
+	Blade blades[];
+};
+
+layout(set = 2, binding = 1) buffer CulledBlades {
+	Blade culledBlades[];
+};
+
+layout(set = 2, binding = 2) buffer NumBlades {
+	uint vertexCount;   // Write the number of blades remaining here
+	uint instanceCount; // = 1
+	uint firstVertex;   // = 0
+	uint firstInstance; // = 0
+} numBlades;
+
+
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
 }
 
+// Constants 
+const float ACCELERATION = 9.8;
+const vec4 GRAVITY = vec4(0.0, -1.0, 0.0, ACCELERATION);
+const float PI = 3.14159265;
+
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
+		numBlades.vertexCount = 0;
 	}
 	barrier(); // Wait till all threads reach this point
 
     // TODO: Apply forces on every blade and update the vertices in the buffer
+	
+	uint index = gl_GlobalInvocationID.x;
+	Blade currBlade = blades[index];
+
+
+	// --------------------------------------- FORCE CALCULATIONS -----------------------------------------
+
+	vec3 v0_pos = currBlade.v0.xyz;
+	float theta = currBlade.v0.w;
+
+	vec3 v1_pos = currBlade.v1.xyz;
+	float height = currBlade.v1.w;
+
+	vec3 v2_pos = currBlade.v2.xyz;
+	float width = currBlade.v2.w;
+
+	vec3 upVec = currBlade.up.xyz;
+	float stiffness = currBlade.up.w;
+
+	// ---------- Calculate gravity ---------- 
+	// g = gE + gF ---------- blade's v0.w = blade's orientation
+		
+	// Environmental gravity
+	vec3 gE = normalize(GRAVITY.xyz) * GRAVITY.w;
+		
+	// Front gravity 
+	// Get front facing direction
+	// https://math.stackexchange.com/questions/180874/convert-angle-radians-to-a-heading-vector
+	// https://www.opengl.org/discussion_boards/showthread.php/178287-Get-orientation-from-vectors
+	// https://en.wikipedia.org/wiki/Cross_product
+	vec3 orientationVec = vec3(sin(theta), 0.0, cos(theta));
+	vec3 frontDir = normalize(cross(upVec, orientationVec));
+	vec3 gF = 0.25 * length(gE) * frontDir;
+
+	vec3 g = gE + gF;
+
+	// ---------- Calculate recovery ---------- 
+	// r = (iv2 - v2) * stiffness ---------- v1.w = height and up.w = stiffness
+	vec3 iv2 =  v0_pos + vec3(upVec * height);
+	vec3 r = (iv2 - v2_pos) * stiffness;
+
+	// ---------- Calculate wind ----------
+
+	// Calculate wind equation based on position
+	// https://www.cg.tuwien.ac.at/research/publications/2013/JAHRMANN-2013-IGR/JAHRMANN-2013-IGR-paper.pdf
+
+	vec3 windDir = normalize(vec3(1.0, 0.0, 1.0));
+	float windSpeed = 5.0;
+	
+	float c1 = 0.2;
+	float c2 = 0.2;
+	float c3 = 0.2;
+	float epsilon = 0.00001;
+	float a_p = (PI * v0_pos.x) + totalTime + ((PI / 4.0) / (abs(cos(PI * v0_pos.z * c2)) + epsilon));
+	float w_p = sin(c1 * a_p) * cos(c3 * a_p);
+	
+	vec3 windStrength = windDir * windSpeed * w_p;
+
+	// Calculate alignment 
+	float dirAlign = 1.0 - abs(dot(normalize(windStrength) , normalize(v2_pos - v0_pos)));
+	float heightRatio = dot((v2_pos - v0_pos), upVec) / height;
+	float alignment = dirAlign * heightRatio;
+
+	vec3 w = windStrength * alignment;
+
+	// ---------- Calculate total force ----------
+	vec3 tv2 = (g + r + w) * deltaTime;
+
+	// ---------- Update v2_pos ----------
+	v2_pos += tv2;
+
+	// ---------- State validation ----------
+	// Condition 1: Make sure v2_pos is above local plane 
+	v2_pos = v2_pos - upVec * min(dot(upVec, v2_pos - v0_pos), 0.0);
+
+	// Condition 2: Set v1_pos according to v2_pos
+	float lproj = length(v2_pos - v0_pos - upVec * dot(v2_pos - v0_pos, upVec));
+	v1_pos = v0_pos + height * upVec * max( (1 - lproj / height) , (0.05 * max(lproj / height, 1.0)) );
+
+	// Condition 3: Length of curve must be equal to height of grass blade
+	float L0 = distance(v0_pos, v2_pos);
+	float L1 = distance(v0_pos, v1_pos) + distance(v1_pos, v2_pos);
+	float n = 2.0;	// Since this is a 2nd degree bezier curve
+	float L = ((2.0 * L0) + (n - 1.0) * L1) / (n + 1.0);
+
+	// Final corrections 
+	float ratio = height / L;
+	vec3 v1_corr = v0_pos + ratio * (v1_pos - v0_pos);
+	vec3 v2_corr = v1_corr + ratio * (v2_pos - v1_pos);
+	blades[index].v1.xyz = v1_corr;
+	blades[index].v2.xyz = v2_corr;
+
+	// THIS IS WRONG - LESSON LEARNED
+	// THIS IS CHANGING THE COPY
+	//currBlade.v1.xyz = v0_pos + ratio * (v1_pos - v0_pos);
+	//currBlade.v2.xyz = currBlade.v1.xyz + ratio * (v2_pos - v1_pos);
+	
+	// ---------------------------------------- CULLING TESTS ---------------------------------------- 
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
+
+
+	// Orientation culling ------------------------
+	// https://gamedev.stackexchange.com/questions/22283/how-to-get-translation-from-view-matrix
+	mat4 inverseView = inverse(camera.view);
+	vec3 eyeWorldPos = (inverseView * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+	vec3 viewDir = normalize(eyeWorldPos - v0_pos);
+	float cullThreshold = 0.9;
+	bool orientationCull = abs(dot(viewDir, frontDir)) > cullThreshold;
+
+	
+	// View-frustum culling ------------------------
+	vec4 v0_ndc = camera.proj * camera.view * vec4(v0_pos, 1.0);
+	vec4 v2_ndc = camera.proj * camera.view * vec4(v2_pos, 1.0);
+	vec3 midpt = (0.25 * v0_pos) + (0.5 * v1_pos) + (0.25 + v2_pos);
+	vec4 midpt_ndc = camera.proj * camera.view * vec4(midpt, 1.0);
+	
+	float tolerance = 3.5;
+
+	float v0_h = v0_ndc.w + tolerance;
+	float v2_h = v2_ndc.w + tolerance;
+	float midpt_h = midpt_ndc.w + tolerance;
+
+	bool viewFrustCull = false;
+
+	viewFrustCull = !(inBounds(v0_ndc.x, v0_h)) || !(inBounds(v0_ndc.y, v0_h)) || !(inBounds(v0_ndc.z, v0_h));
+	
+	if(viewFrustCull)
+	{
+		bool midpt_test = !(inBounds(midpt_ndc.x, midpt_h)) || !(inBounds(midpt_ndc.y, midpt_h)) || !(inBounds(midpt_ndc.z, midpt_h));
+		viewFrustCull = viewFrustCull && midpt_test;
+	}
+
+	if(viewFrustCull)
+	{
+		bool v2_test = !(inBounds(v2_ndc.x, v2_h)) || !(inBounds(v2_ndc.y, v2_h)) || !(inBounds(v2_ndc.z, v2_h));
+		viewFrustCull = viewFrustCull && v2_test;
+	}
+
+	// Distance culling ------------------------
+	float d_proj = length( v0_pos - eyeWorldPos - ( upVec * dot( v0_pos - eyeWorldPos, upVec ) ) );
+	float d_max = 50.0;
+	float num_buckets = 10.0;
+	bool distanceCull = mod(index, num_buckets) > floor( num_buckets * (1.0 - d_proj / d_max) );
+
+
+	// http://www.nvidia.com/content/siggraph/Rollin_Oster_OpenGL_CUDA.pdf (slide 21)
+	// index = atomicAdd(totalVerts, vertsInSurface)
+
+	if(!orientationCull && !viewFrustCull && !distanceCull)
+	{
+		culledBlades[atomicAdd(numBlades.vertexCount, 1)] = currBlade;
+	}
+
 }
