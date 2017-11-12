@@ -110,51 +110,42 @@ void main() {
     bladeOut.v1.xyz = bladeOut.v0.xyz + r * (currentBladeIn.v1.xyz - bladeOut.v0.xyz);
     bladeOut.v2.xyz = bladeOut.v1.xyz + r * (bladeOut.v2.xyz - currentBladeIn.v1.xyz);
 
-	// TODO: Cull blades that are too far away or not in the camera frustum and write them
-	// to the culled blades buffer
-	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
-	// You want to write the visible blades to the buffer without write conflicts between threads
+    // CULLING
 
     bool shouldCull = false;
     
     // Orientation culling
+    const vec3 cameraPos = (inverse(camera.view) * vec4(0, 0, 0, 1)).xyz;
     vec3 widthDir = normalize(vec3(cos(currentBladeIn.v0.w + 1.57079632679), 0, sin(currentBladeIn.v0.w + 1.57079632679))); // that's PI / 2
     widthDir = normalize((camera.view * vec4(widthDir, 0)).xyz); // put it in view space
-    if(abs(dot(normalize((camera.view * vec4(bladeOut.v0.xyz, 1.0)).xyz), widthDir)) > 0.9) {
+    if(abs(widthDir.z) < 0.2) {
         shouldCull = true;
     }
 
     // Frustum culling on v0, v2 and m
     const vec3 m = 0.25 * bladeOut.v0.xyz + 0.5 * bladeOut.v1.xyz + 0.25 * bladeOut.v2.xyz;
-    // check if v0, v1, and m are all outside the frustum.
+    // check if v0, v1, and m are all outside the frustum
 
     const vec4 p_prime_0 = camera.proj * camera.view * vec4(bladeOut.v0.xyz, 1.0);
     const vec4 p_prime_m = camera.proj * camera.view * vec4(m, 1.0);
     const vec4 p_prime_2 = camera.proj * camera.view * vec4(bladeOut.v2.xyz, 1.0);
 
-    const float tolerance = 0.01;
+    const float tolerance = 5.0;
     const vec3 h = vec3(p_prime_0.w, p_prime_m.w, p_prime_2.w) + tolerance;
 
-    if(p_prime_0.x > -h.x && p_prime_0.y > -h.x && p_prime_0.z > -h.x &&
-       p_prime_0.x < h.x && p_prime_0.y < h.x && p_prime_0.z < h.x) {
-       shouldCull = true;
-    }
-
-    if(p_prime_m.x > -h.y && p_prime_m.y > -h.y && p_prime_m.z > -h.y &&
-       p_prime_m.x < h.y && p_prime_m.y < h.y && p_prime_m.z < h.y) {
-       shouldCull = true;
-    }
-
-    if(p_prime_2.x > -h.y && p_prime_2.y > -h.y && p_prime_2.z > -h.y &&
-       p_prime_2.x < h.y && p_prime_2.y < h.y && p_prime_2.z < h.y) {
-       shouldCull = true;
+    if(!(p_prime_0.x > -h.x && p_prime_0.y > -h.x && p_prime_0.z > -h.x &&
+       p_prime_0.x < h.x && p_prime_0.y < h.x && p_prime_0.z < h.x) &&
+       !(p_prime_m.x > -h.y && p_prime_m.y > -h.y && p_prime_m.z > -h.y &&
+       p_prime_m.x < h.y && p_prime_m.y < h.y && p_prime_m.z < h.y) &&
+       !(p_prime_2.x > -h.z && p_prime_2.y > -h.z && p_prime_2.z > -h.z &&
+       p_prime_2.x < h.z && p_prime_2.y < h.z && p_prime_2.z < h.z)) {
+       //shouldCull = true;
     }
 
     // Distance culling
     const float dMax = 20.0; // After this point, all blades are culled
-    const vec3 cameraPos = (inverse(camera.view) * vec4(0, 0, 0, 1)).xyz;
     const float dProj = length(bladeOut.v0.xyz - cameraPos - bladeOut.up.xyz * (dot(bladeOut.v0.xyz - cameraPos, bladeOut.up.xyz)));
-    shouldCull = mod(gl_GlobalInvocationID.x, 8.0) > floor(8.0 * (1.0 - dProj / dMax));
+    //shouldCull = shouldCull || mod(gl_GlobalInvocationID.x, 8.0) > floor(8.0 * (1.0 - dProj / dMax));
 
     if(!shouldCull) {
         // Increment num blades
