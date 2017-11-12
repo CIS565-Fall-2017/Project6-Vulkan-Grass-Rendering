@@ -8,7 +8,7 @@ Vulkan Grass Rendering
 
 ### Demo Video
 
-![Link.](https://vimeo.com/242475364)
+[Link.](https://vimeo.com/242475364)
 
 ### README
 
