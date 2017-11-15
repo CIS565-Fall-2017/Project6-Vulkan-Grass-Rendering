@@ -45,3 +45,11 @@ Vulkan Grass Rendering
     * View-frustum culling: tolerance = 1
 
 It shows that culling really improves the performance, especially when the number of blades is big. For different three culling method, orientation culling has a bigger influence than other two methods, and view-frustum culling has less impact on the performance.
+
+# References
+
+* [Responsive Real-Time Grass Grass Rendering for General 3D Scenes](https://www.cg.tuwien.ac.at/research/publications/2017/JAHRMANN-2017-RRTG/JAHRMANN-2017-RRTG-draft.pdf)
+* [CIS565 Vulkan samples](https://github.com/CIS565-Fall-2017/Vulkan-Samples)
+* [Official Vulkan documentation](https://www.khronos.org/registry/vulkan/)
+* [Vulkan tutorial](https://vulkan-tutorial.com/)
+* [Tessellation tutorial](http://in2gpu.com/2014/07/12/tessellation-tutorial-opengl-4-3/)
