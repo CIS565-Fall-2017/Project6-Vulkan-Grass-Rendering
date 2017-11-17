@@ -12,6 +12,10 @@ constexpr static float MAX_WIDTH = 0.14f;
 constexpr static float MIN_BEND = 7.0f;
 constexpr static float MAX_BEND = 13.0f;
 
+struct BladeBufferObject {
+    glm::mat4 modelMatrix;
+};
+
 struct Blade {
     // Position and direction
     glm::vec4 v0;

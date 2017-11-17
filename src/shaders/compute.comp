@@ -29,12 +29,20 @@ struct Blade {
 // The project is using vkCmdDrawIndirect to use a buffer as the arguments for a draw call
 // This is sort of an advanced feature so we've showed you what this buffer should look like
 //
-// layout(set = ???, binding = ???) buffer NumBlades {
-// 	  uint vertexCount;   // Write the number of blades remaining here
-// 	  uint instanceCount; // = 1
-// 	  uint firstVertex;   // = 0
-// 	  uint firstInstance; // = 0
-// } numBlades;
+layout(set = 2, binding = 2) buffer NumBlades {
+	  uint vertexCount;   // Write the number of blades remaining here
+	  uint instanceCount; // = 1
+	  uint firstVertex;   // = 0
+	  uint firstInstance; // = 0
+} numBlades;
+
+layout(set = 2, binding = 1) buffer BladesIn {
+	  Blade[] blades;
+} blades;
+
+layout(set = 2, binding = 0) buffer BladesOut {
+	  Blade[] blades;
+} culledBlades;
 
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
@@ -43,14 +51,106 @@ bool inBounds(float value, float bounds) {
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
+		numBlades.vertexCount = 0;
 	}
 	barrier(); // Wait till all threads reach this point
 
     // TODO: Apply forces on every blade and update the vertices in the buffer
+    
+    // Recovery Force
+    // Initial pose of V2 is v0 + up * height
+    const Blade currentBladeIn = blades.blades[gl_GlobalInvocationID.x];
+    vec3 I_V2 = currentBladeIn.v0.xyz + currentBladeIn.up.xyz * currentBladeIn.v1.w;
+    const vec3 recoveryForce = (I_V2 - currentBladeIn.v2.xyz) * currentBladeIn.up.w;
 
-	// TODO: Cull blades that are too far away or not in the camera frustum and write them
-	// to the culled blades buffer
-	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
-	// You want to write the visible blades to the buffer without write conflicts between threads
+    // Gravity
+    const vec3 gravityDir = vec3(0, 1, 0);
+    const float gravityAccel = 9.8;
+    const vec3 gravityForceE = gravityAccel * gravityDir;
+    const vec3 forwardDir = normalize(vec3(cos(currentBladeIn.v0.w), 0, sin(currentBladeIn.v0.w)));
+    const vec3 gravityForceF = length(gravityForceE) * forwardDir * 0.25;
+    const vec3 gravityForceTotal = gravityForceE + gravityForceF;
+    //const vec3 gravityForceTotal = vec3(0.0);
+
+    // Wind
+    const vec3 windDir = vec3(cos(totalTime * 0.25 + currentBladeIn.v2.x * 0.25 + length(currentBladeIn.v2.z * 0.25 + totalTime * 0.25)), 0.0, sin(totalTime - currentBladeIn.v2.z * 0.25)) * 1.5;
+    const float directionalAlignment = 1.0 - length(windDir - normalize(currentBladeIn.v2.xyz - currentBladeIn.v0.xyz));
+    const float heightRatio = dot((currentBladeIn.v2.xyz - currentBladeIn.v0.xyz), currentBladeIn.up.xyz) / currentBladeIn.v1.w;
+    const vec3 windForce = heightRatio * directionalAlignment * windDir;
+
+    vec3 totalForce = recoveryForce + gravityForceTotal + windForce;
+    totalForce *= deltaTime;
+
+    // Move V2 and V1 properly
+    Blade bladeOut;
+
+    bladeOut.v2.xyz = currentBladeIn.v2.xyz + totalForce;
+
+    // Pass v0
+    bladeOut.v0 = currentBladeIn.v0;
+
+    // Pass up
+    bladeOut.up = currentBladeIn.up;
+
+    // Move V2
+    bladeOut.v2.xyz = bladeOut.v2.xyz - bladeOut.up.xyz * min(dot(bladeOut.up.xyz, bladeOut.v2.xyz - bladeOut.v0.xyz), 0.0);
+    bladeOut.v2.w = currentBladeIn.v2.w;
+
+    // Move V1
+    const float lProj = length(bladeOut.v2.xyz - bladeOut.v0.xyz - bladeOut.up.xyz * dot(bladeOut.v2.xyz - bladeOut.v0.xyz, bladeOut.up.xyz));
+    bladeOut.v1.xyz = bladeOut.v0.xyz + currentBladeIn.v1.w * bladeOut.up.xyz * max(1.0 - lProj / currentBladeIn.v1.w, 0.05 * max(lProj / currentBladeIn.v1.w, 1.0));
+    bladeOut.v1.w = currentBladeIn.v1.w;
+
+    // Check length of the Bezier curve
+    const float L0 = length(bladeOut.v2.xyz - bladeOut.v0.xyz);
+    const float L1 = length(bladeOut.v2.xyz - bladeOut.v1.xyz) + length(bladeOut.v1.xyz - bladeOut.v0.xyz);
+    const float n = 2.0; // degree 2 Bezier curve
+    const float L = (2.0 * L0 + (n - 1.0) * L1) / (n + 1.0);
+    const float r = currentBladeIn.v1.w / L;
+    bladeOut.v1.xyz = bladeOut.v0.xyz + r * (currentBladeIn.v1.xyz - bladeOut.v0.xyz);
+    bladeOut.v2.xyz = bladeOut.v1.xyz + r * (bladeOut.v2.xyz - currentBladeIn.v1.xyz);
+
+    // CULLING
+
+    bool shouldCull = false;
+    
+    // Orientation culling
+    const vec3 cameraPos = (inverse(camera.view) * vec4(0, 0, 0, 1)).xyz;
+    vec3 widthDir = normalize(vec3(cos(currentBladeIn.v0.w + 1.57079632679), 0, sin(currentBladeIn.v0.w + 1.57079632679))); // that's PI / 2
+    widthDir = normalize((camera.view * vec4(widthDir, 0)).xyz); // put it in view space
+    if(abs(widthDir.z) < 0.2) {
+        shouldCull = true;
+    }
+
+    // Frustum culling on v0, v2 and m
+    const vec3 m = 0.25 * bladeOut.v0.xyz + 0.5 * bladeOut.v1.xyz + 0.25 * bladeOut.v2.xyz;
+    // check if v0, v1, and m are all outside the frustum
+
+    const vec4 p_prime_0 = camera.proj * camera.view * vec4(bladeOut.v0.xyz, 1.0);
+    const vec4 p_prime_m = camera.proj * camera.view * vec4(m, 1.0);
+    const vec4 p_prime_2 = camera.proj * camera.view * vec4(bladeOut.v2.xyz, 1.0);
+
+    const float tolerance = 5.0;
+    const vec3 h = vec3(p_prime_0.w, p_prime_m.w, p_prime_2.w) + tolerance;
+
+    if(!(p_prime_0.x > -h.x && p_prime_0.y > -h.x && p_prime_0.z > -h.x &&
+       p_prime_0.x < h.x && p_prime_0.y < h.x && p_prime_0.z < h.x) &&
+       !(p_prime_m.x > -h.y && p_prime_m.y > -h.y && p_prime_m.z > -h.y &&
+       p_prime_m.x < h.y && p_prime_m.y < h.y && p_prime_m.z < h.y) &&
+       !(p_prime_2.x > -h.z && p_prime_2.y > -h.z && p_prime_2.z > -h.z &&
+       p_prime_2.x < h.z && p_prime_2.y < h.z && p_prime_2.z < h.z)) {
+       //shouldCull = true;
+    }
+
+    // Distance culling
+    const float dMax = 20.0; // After this point, all blades are culled
+    const float dProj = length(bladeOut.v0.xyz - cameraPos - bladeOut.up.xyz * (dot(bladeOut.v0.xyz - cameraPos, bladeOut.up.xyz)));
+    //shouldCull = shouldCull || mod(gl_GlobalInvocationID.x, 8.0) > floor(8.0 * (1.0 - dProj / dMax));
+
+    if(!shouldCull) {
+        // Increment num blades
+        culledBlades.blades[atomicAdd(numBlades.vertexCount, 1)] = bladeOut;
+    }
+
+    blades.blades[gl_GlobalInvocationID.x] = bladeOut;
 }
