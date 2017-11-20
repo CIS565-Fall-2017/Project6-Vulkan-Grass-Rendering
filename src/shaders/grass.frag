@@ -6,7 +6,7 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
     mat4 proj;
 } camera;
 
-// TODO: Declare fragment shader inputs
+// TODO: Declare fragment shader inputs - normal?
 
 layout(location = 0) out vec4 outColor;
 

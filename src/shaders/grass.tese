@@ -18,8 +18,9 @@ layout(location = 3) in vec4[] vUp_in;
 void main() {
     float u = gl_TessCoord.x;
     float v = gl_TessCoord.y;
+	float t = u + 0.5 * v - u * v;
 
-	// TODO: Use u and v to parameterize along the grass blade and output positions for each vertex of the grass blade
+	// DONE: Use u and v to parameterize along the grass blade and output positions for each vertex of the grass blade
 	float height = v1_in[0].w;
 	float width = v2_in[0].w;
 	float angle = v0_in[0].w;
@@ -27,15 +28,15 @@ void main() {
 	vec3 v0 = vec3(v0_in[0]);
 	vec3 v1 = vec3(v1_in[0]);
 	vec3 v2 = vec3(v2_in[0]);
-	vec3 dir = vec3(sin(angle), 0.0, cos(angle));
+	vec3 forward = vec3(cos(angle), 0.0, sin(angle));
+	vec3 right = normalize(cross(forward, vec3(vUp_in[0])));
 
-	vec3 a = v0 + v * (v1 - v0); //scaled up
-	vec3 b = v1 + v * (v2 - v1); //scaled forward
-	vec3 c = a + v * (b - a); //mid
+	vec3 a = v0 + v * (v1 - v0); //amount up
+	vec3 b = v1 + v * (v2 - v1); //amount forward
+	vec3 c = a + v * (b - a);
+	vec3 c0 = c - width * right;
+	vec3 c1 = c + width * right;
 
-	vec3 c0 = c - width * dir;
-	vec3 c1 = c + width * dir;
-	float t = u + 0.5 * v - u * v;
 	vec3 pos = (1 - t) * c0 + t * c1;
 
 	gl_Position = camera.proj * camera.view * vec4(pos, 1.0);
