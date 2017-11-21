@@ -1,8 +1,5 @@
 
-[
-![YouTube Link](img/youtubelink.png)
-](https://www.youtube.com/watch?v=rpcss9_z4yU)
-
+[![YouTube Link](img/youtubelink.png)](https://www.youtube.com/watch?v=rpcss9_z4yU)
 
 Instructions - Vulkan Grass Rendering
 ========================
