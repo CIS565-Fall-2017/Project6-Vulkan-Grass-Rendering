@@ -3,8 +3,9 @@
 #include <glm/glm.hpp>
 #include <array>
 #include "Model.h"
+#define SPHERE 0;
 
-constexpr static unsigned int NUM_BLADES = 1 << 7;
+constexpr static unsigned int NUM_BLADES = 1 << 18;
 constexpr static float MIN_HEIGHT = 1.3f;
 constexpr static float MAX_HEIGHT = 2.5f;
 constexpr static float MIN_WIDTH = 0.1f;
@@ -80,7 +81,7 @@ private:
     VkDeviceMemory numBladesBufferMemory;
 
 public:
-    Blades(Device* device, VkCommandPool commandPool, float planeDim);
+    Blades(Device* device, VkCommandPool commandPool, float planeDim, std::vector<Vertex>& verts, std::vector<uint32_t>& indices);
     VkBuffer GetBladesBuffer() const;
     VkBuffer GetCulledBladesBuffer() const;
     VkBuffer GetNumBladesBuffer() const;

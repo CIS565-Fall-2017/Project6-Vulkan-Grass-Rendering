@@ -74,7 +74,31 @@ void main() {
 	vec3 vUp = vec3(thisBlade.up);
 	vec3 forward = vec3(cos(thisBlade.v0.w), 0, sin(thisBlade.v0.w));
 	vec3 right = normalize(cross(forward, vUp));
+	forward = -normalize(cross(right, vUp)); //TODO - unnecessarily expensive?
 	float height = thisBlade.v1.w;
+
+	//CULLING
+
+	//orientation
+	mat4 inverseView = inverse(camera.view);
+	vec4 dirc = inverseView * vec4(0.0, 0.0, 1.0, 0.0);
+	isCulled = abs(dot(dirc.xyz, right.xyz)) > 0.7;
+
+	//frustum
+	vec3 m = .25 * v0.xyz + .5 * v1.xyz + .25 * v2.xyz;
+	vec4 rootNDC = (camera.proj * camera.view * vec4(v0, 1.0));
+	vec4 midNDC = (camera.proj * camera.view * vec4(m, 1.0));
+	vec4 tipNDC = (camera.proj * camera.view * vec4(v2, 1.0));
+	isCulled = isCulled || !inBounds(rootNDC.xyz / rootNDC.w, 1.0f) || !inBounds(midNDC.xyz / midNDC.w, 1.0f) || !inBounds(tipNDC.xyz / tipNDC.w, 1.0f);
+
+	//distance
+	float dist = -(camera.view * vec4(v0, 1.0)).z;
+	isCulled = isCulled || dist > 75.0f;
+	if (isCulled && totalTime > 1) return; //let them settle first
+	else if (dist > 50.0f && totalTime > 1) {
+		bladesToRender[atomicAdd(numBlades.vertexCount, 1)] = thisBlade;
+		return;
+	}
 
 	//FORCES
 
@@ -88,11 +112,11 @@ void main() {
 	vec3 r = (iv2 - v2) * 1.3f * thisBlade.up.w;
 
 	//wind
-	vec3 windDir = abs(cos(totalTime)) * vec3(1.0f, 0, 0) + cos(totalTime * 0.6f) * vec3(0.5f, 0, 0.5f);
+	vec3 windDir = (cos(totalTime + v0.x * 50) + 0.75f) * vec3(1.0f, 0, 0); //overlapping waves
 	//wind alignment
 	float fd = 1 - abs(dot(windDir, right)); //1 in total alignment, 0 in orthogonal case //1 - dot( (windDir * v0) / length(windDir * v0), (v2 - v0) / length(v2 - v0));
 	float fr = dot((v2 - v0), vUp) / height;
-	vec3 w = (windDir * v0) * (fd * fr);
+	vec3 w = windDir * fd * fr;
 
 	//state validation
 	vec3 tv2 = deltaTime * (g + r + w);
@@ -113,24 +137,6 @@ void main() {
 	v2 = v1 + ratio*(v2 - v1);
 	thisBlade.v2 = vec4(v2, thisBlade.v2.w);
 
-	//CULLING
-
-	//orientation
-	mat4 inverseView = inverse(camera.view);
-	vec4 dirc = inverseView * vec4(0.0, 0.0, 1.0, 0.0);
-	isCulled = abs(dot(dirc.xyz, right.xyz)) > 0.92;
-
-	//frustum
-	vec3 m = .25 * v0.xyz + .5 * v1.xyz + .25 * v2.xyz;
-	vec4 rootNDC = (camera.proj * camera.view * vec4(v0, 1.0));
-	vec4 midNDC = (camera.proj * camera.view * vec4(m, 1.0));
-	vec4 tipNDC = (camera.proj * camera.view * vec4(v2, 1.0));
-	isCulled = isCulled || !inBounds(rootNDC.xyz / rootNDC.w, 1.0f) || !inBounds(midNDC.xyz / midNDC.w, 1.0f) || !inBounds(tipNDC.xyz / tipNDC.w, 1.0f);
-
-	//distance
-	float dist = -(camera.view * vec4(v0, 1.0)).z;
-	isCulled = isCulled || dist > 40.0f;
-
 	allBlades[index] = thisBlade;
-	if (!isCulled) bladesToRender[atomicAdd(numBlades.vertexCount, 1)] = thisBlade;
+	bladesToRender[atomicAdd(numBlades.vertexCount, 1)] = thisBlade;
 }

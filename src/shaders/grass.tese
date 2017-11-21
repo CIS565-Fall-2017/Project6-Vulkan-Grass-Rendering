@@ -15,6 +15,8 @@ layout(location = 1) in vec4[] v1_in;
 layout(location = 2) in vec4[] v2_in;
 layout(location = 3) in vec4[] vUp_in;
 
+layout(location = 0) out vec3 normal;
+
 void main() {
     float u = gl_TessCoord.x;
     float v = gl_TessCoord.y;
@@ -30,6 +32,7 @@ void main() {
 	vec3 v2 = vec3(v2_in[0]);
 	vec3 forward = vec3(cos(angle), 0.0, sin(angle));
 	vec3 right = normalize(cross(forward, vec3(vUp_in[0])));
+	forward = -normalize(cross(right, vec3(vUp_in[0]))); //TODO - unnecessarily expensive?
 
 	vec3 a = v0 + v * (v1 - v0); //amount up
 	vec3 b = v1 + v * (v2 - v1); //amount forward
@@ -37,6 +40,8 @@ void main() {
 	vec3 c0 = c - width * right;
 	vec3 c1 = c + width * right;
 
+	vec3 t0 = normalize(b - a);
+	normal = normalize(cross(t0, right));
 	vec3 pos = (1 - t) * c0 + t * c1;
 
 	gl_Position = camera.proj * camera.view * vec4(pos, 1.0);
