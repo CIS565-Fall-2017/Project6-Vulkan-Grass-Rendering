@@ -99,6 +99,10 @@ void main() {
 		bladesToRender[atomicAdd(numBlades.vertexCount, 1)] = thisBlade;
 		return;
 	}
+	else if (dist > 25.0f && totalTime > 1 && index % 3 != 0) {
+		bladesToRender[atomicAdd(numBlades.vertexCount, 1)] = thisBlade;
+		return;
+	}
 
 	//FORCES
 

@@ -5,7 +5,7 @@
 #include "Model.h"
 #define SPHERE 0;
 
-constexpr static unsigned int NUM_BLADES = 1 << 18;
+constexpr static unsigned int NUM_BLADES = 1 << 19;
 constexpr static float MIN_HEIGHT = 1.3f;
 constexpr static float MAX_HEIGHT = 2.5f;
 constexpr static float MIN_WIDTH = 0.1f;

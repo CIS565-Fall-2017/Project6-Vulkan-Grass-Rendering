@@ -1,7 +1,11 @@
+
+[
+![YouTube Link](img/youtubelink.png)
+](https://www.youtube.com/watch?v=rpcss9_z4yU)
+
+
 Instructions - Vulkan Grass Rendering
 ========================
-
-This is due **Sunday 11/5, evening at midnight**.
 
 **Summary:**
 In this project, you will use Vulkan to implement a grass simulator and renderer. You will
