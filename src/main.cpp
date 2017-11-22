@@ -5,6 +5,8 @@
 #include "Camera.h"
 #include "Scene.h"
 #include "Image.h"
+#include <iostream>
+#pragma comment( lib,"winmm.lib" )
 
 Device* device;
 SwapChain* swapChain;
@@ -142,11 +144,21 @@ int main() {
     glfwSetWindowSizeCallback(GetGLFWWindow(), resizeCallback);
     glfwSetMouseButtonCallback(GetGLFWWindow(), mouseDownCallback);
     glfwSetCursorPosCallback(GetGLFWWindow(), mouseMoveCallback);
+	
+	//clock_t start, end;
+    
+	while (!ShouldQuit()) {
+		glfwPollEvents();
 
-    while (!ShouldQuit()) {
-        glfwPollEvents();
+		//record time
         scene->UpdateTime();
-        renderer->Frame();
+		//start = clock();
+		
+		renderer->Frame();
+		
+		//end = clock();
+		//double dur = (double)(end - start);
+		//std::cout << dur * 1000.0 / CLOCKS_PER_SEC << std::endl;
     }
 
     vkDeviceWaitIdle(device->GetVkDevice());
