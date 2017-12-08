@@ -61,7 +61,7 @@ I settled on 7 subdivisions for my scene, but depending on context, it seems lik
 
 ##### 4: Rendering
 
-  The grass rendering uses the normal from the tessellation evaluation shader and simple lambert shading. I also generated a rolling plane by [generating a quad from the root positions of every few blades](http://catlikecoding.com/unity/tutorials/procedural-grid/03-quad.png) in each row and column, which maps a repeating grass texture the same color as the blades. Afer all is said and done, the entire system scales as follows:
+  The grass rendering uses the normal from the tessellation evaluation shader and simple lambert shading. I also generated a rolling plane by [generating a quad from the root positions of every few blades](https://zippy.gfycat.com/InsignificantBlackandwhiteChihuahua.mp4) in each row and column, which maps a repeating grass texture the same color as the blades. Afer all is said and done, the entire system scales as follows:
 
 ![bladesstats](img/NumBlades.png)
 
