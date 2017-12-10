@@ -3,14 +3,15 @@
 #include <glm/glm.hpp>
 #include <array>
 #include "Model.h"
+#define SPHERE 0;
 
-constexpr static unsigned int NUM_BLADES = 1 << 13;
+constexpr static unsigned int NUM_BLADES = 1 << 19;
 constexpr static float MIN_HEIGHT = 1.3f;
 constexpr static float MAX_HEIGHT = 2.5f;
 constexpr static float MIN_WIDTH = 0.1f;
 constexpr static float MAX_WIDTH = 0.14f;
-constexpr static float MIN_BEND = 7.0f;
-constexpr static float MAX_BEND = 13.0f;
+constexpr static float MIN_BEND = 5.0f;
+constexpr static float MAX_BEND = 10.0f;
 
 struct Blade {
     // Position and direction
@@ -80,7 +81,7 @@ private:
     VkDeviceMemory numBladesBufferMemory;
 
 public:
-    Blades(Device* device, VkCommandPool commandPool, float planeDim);
+    Blades(Device* device, VkCommandPool commandPool, float planeDim, std::vector<Vertex>& verts, std::vector<uint32_t>& indices);
     VkBuffer GetBladesBuffer() const;
     VkBuffer GetCulledBladesBuffer() const;
     VkBuffer GetNumBladesBuffer() const;

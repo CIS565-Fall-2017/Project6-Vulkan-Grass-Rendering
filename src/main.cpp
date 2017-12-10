@@ -67,7 +67,7 @@ namespace {
 
 int main() {
     static constexpr char* applicationName = "Vulkan Grass Rendering";
-    InitializeWindow(640, 480, applicationName);
+    InitializeWindow(1280, 720, applicationName);
 
     unsigned int glfwExtensionCount = 0;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -90,7 +90,7 @@ int main() {
 
     swapChain = device->CreateSwapChain(surface, 5);
 
-    camera = new Camera(device, 640.f / 480.f);
+    camera = new Camera(device, 1280.0f / 720.0f);
 
     VkCommandPoolCreateInfo transferPoolInfo = {};
     transferPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -115,21 +115,15 @@ int main() {
         grassImage,
         grassImageMemory
     );
-
-    float planeDim = 15.f;
-    float halfWidth = planeDim * 0.5f;
-    Model* plane = new Model(device, transferCommandPool,
-        {
-            { { -halfWidth, 0.0f, halfWidth }, { 1.0f, 0.0f, 0.0f },{ 1.0f, 0.0f } },
-            { { halfWidth, 0.0f, halfWidth }, { 0.0f, 1.0f, 0.0f },{ 0.0f, 0.0f } },
-            { { halfWidth, 0.0f, -halfWidth }, { 0.0f, 0.0f, 1.0f },{ 0.0f, 1.0f } },
-            { { -halfWidth, 0.0f, -halfWidth }, { 1.0f, 1.0f, 1.0f },{ 1.0f, 1.0f } }
-        },
-        { 0, 1, 2, 2, 3, 0 }
-    );
-    plane->SetTexture(grassImage);
     
-    Blades* blades = new Blades(device, transferCommandPool, planeDim);
+	float planeDim = 100.0f;
+	float halfWidth = planeDim * 0.5f;
+	std::vector<Vertex> planeVertices = std::vector<Vertex>();
+	std::vector<uint32_t> planeIndices = std::vector<uint32_t>();
+    Blades* blades = new Blades(device, transferCommandPool, planeDim, planeVertices, planeIndices);
+
+	Model* plane = new Model(device, transferCommandPool, planeVertices, planeIndices);
+	plane->SetTexture(grassImage);
 
     vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
 

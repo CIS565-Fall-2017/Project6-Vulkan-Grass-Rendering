@@ -4,6 +4,8 @@
 #define WORKGROUP_SIZE 32
 layout(local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
+
+//outlined in createComputePipeline, filled in RecordComputeCommandBuffers
 layout(set = 0, binding = 0) uniform CameraBufferObject {
     mat4 view;
     mat4 proj;
@@ -21,36 +23,124 @@ struct Blade {
     vec4 up;
 };
 
-// TODO: Add bindings to:
+// DONE: Add bindings to:
 // 1. Store the input blades
 // 2. Write out the culled blades
 // 3. Write the total number of blades remaining
 
 // The project is using vkCmdDrawIndirect to use a buffer as the arguments for a draw call
 // This is sort of an advanced feature so we've showed you what this buffer should look like
-//
-// layout(set = ???, binding = ???) buffer NumBlades {
-// 	  uint vertexCount;   // Write the number of blades remaining here
-// 	  uint instanceCount; // = 1
-// 	  uint firstVertex;   // = 0
-// 	  uint firstInstance; // = 0
-// } numBlades;
+layout(set = 2, binding = 2) buffer NumBlades {
+	uint vertexCount;   // Write the number of blades remaining here
+	uint instanceCount; // = 1
+	uint firstVertex;   // = 0
+	uint firstInstance; // = 0
+} numBlades;
 
-bool inBounds(float value, float bounds) {
-    return (value >= -bounds) && (value <= bounds);
+layout(set = 2, binding = 0) buffer AllBlades {
+	Blade allBlades[];
+};
+
+layout(set = 2, binding = 1) buffer BladesToRender {
+	Blade bladesToRender[];
+};
+
+bool inBounds(vec3 value, float bounds) {
+    return (value[0] >= -bounds) && (value[0] <= bounds) ||
+		(value[1] >= -bounds) && (value[1] <= bounds) ||
+		(value[2] >= -bounds) && (value[2] <= bounds);
 }
 
 void main() {
+	uint index = gl_GlobalInvocationID.x;
+
 	// Reset the number of blades to 0
-	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
-	}
+	//if (index > numBlades.vertexCount) return;
+	if (index == 0) numBlades.vertexCount = 0;
 	barrier(); // Wait till all threads reach this point
 
-    // TODO: Apply forces on every blade and update the vertices in the buffer
-
-	// TODO: Cull blades that are too far away or not in the camera frustum and write them
+    // DONE: Apply forces on every blade and update the vertices in the buffer
+	// DONE: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
+	//currently dont cull any blades
+	bool isCulled = false;
+	Blade thisBlade = allBlades[index];
+
+	vec3 v0 = vec3(thisBlade.v0);
+	vec3 v1 = vec3(thisBlade.v1);
+	vec3 v2 = vec3(thisBlade.v2);
+	vec3 vUp = vec3(thisBlade.up);
+	vec3 forward = vec3(cos(thisBlade.v0.w), 0, sin(thisBlade.v0.w));
+	vec3 right = normalize(cross(forward, vUp));
+	forward = -normalize(cross(right, vUp)); //TODO - unnecessarily expensive?
+	float height = thisBlade.v1.w;
+
+	//CULLING
+
+	//orientation
+	mat4 inverseView = inverse(camera.view);
+	vec4 dirc = inverseView * vec4(0.0, 0.0, 1.0, 0.0);
+	isCulled = abs(dot(dirc.xyz, right.xyz)) > 0.7;
+
+	//frustum
+	vec3 m = .25 * v0.xyz + .5 * v1.xyz + .25 * v2.xyz;
+	vec4 rootNDC = (camera.proj * camera.view * vec4(v0, 1.0));
+	vec4 midNDC = (camera.proj * camera.view * vec4(m, 1.0));
+	vec4 tipNDC = (camera.proj * camera.view * vec4(v2, 1.0));
+	isCulled = isCulled || !inBounds(rootNDC.xyz / rootNDC.w, 1.0f) || !inBounds(midNDC.xyz / midNDC.w, 1.0f) || !inBounds(tipNDC.xyz / tipNDC.w, 1.0f);
+
+	//distance
+	float dist = -(camera.view * vec4(v0, 1.0)).z;
+	isCulled = isCulled || dist > 75.0f;
+	if (isCulled && totalTime > 1) return; //let them settle first
+	else if (dist > 50.0f && totalTime > 1) {
+		bladesToRender[atomicAdd(numBlades.vertexCount, 1)] = thisBlade;
+		return;
+	}
+	else if (dist > 25.0f && totalTime > 1 && index % 3 != 0) {
+		bladesToRender[atomicAdd(numBlades.vertexCount, 1)] = thisBlade;
+		return;
+	}
+
+	//FORCES
+
+	//gravity - a quarter of environment grav directed forward
+	vec3 gE = vec3(0.0, -9.81f, 0.0);
+	vec3 gF = 0.25 * 9.81f * forward;
+	vec3 g = gE + gF;
+
+	//recovery - displacement of v2 * stiffness
+	vec3 iv2 = height * vUp + v0;
+	vec3 r = (iv2 - v2) * 1.3f * thisBlade.up.w;
+
+	//wind
+	vec3 windDir = (cos(totalTime + v0.x * 50) + 0.75f) * vec3(1.0f, 0, 0); //overlapping waves
+	//wind alignment
+	float fd = 1 - abs(dot(windDir, right)); //1 in total alignment, 0 in orthogonal case //1 - dot( (windDir * v0) / length(windDir * v0), (v2 - v0) / length(v2 - v0));
+	float fr = dot((v2 - v0), vUp) / height;
+	vec3 w = windDir * fd * fr;
+
+	//state validation
+	vec3 tv2 = deltaTime * (g + r + w);
+	v2 = v2 + tv2;
+	//if (v2.y < 0) v2.y = 0; Not valid with custom normal
+	v2 = v2 - vUp * min(dot(vUp, v2 - v0), 0);
+	//correct length
+	float lproj = length(v2 - v0 - (vUp * dot(v2 - v1, vUp)));
+	v1 = v0 + height * vUp * max(
+		1-(lproj/height), 0.05f * max(lproj/height, 1)
+	);
+
+	float L0 = distance(v0, v1);
+	float L1 = distance(v0, v1) + distance(v0, v2);
+	float L = (L0 + L1) / 1.5f;
+	float ratio = height / L;
+	v1 = v0 + ratio*(v1 - v0);
+	v2 = v1 + ratio*(v2 - v1);
+	thisBlade.v2 = vec4(v2, thisBlade.v2.w);
+
+	allBlades[index] = thisBlade;
+	bladesToRender[atomicAdd(numBlades.vertexCount, 1)] = thisBlade;
 }
