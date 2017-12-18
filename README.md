@@ -10,9 +10,11 @@ Vulkan Grass Tesselation
 
 [![](readmeImages/GrassTesselationVimeoLinkImage.png)](https://vimeo.com/241412888)
 
+Can simulate over 1 million blades of grass on a notebook GTX 1070.
+
 ## OverView
 
-This project implements a grass simulator and renderer using Vulkan. Each grass blade is represented by a quadratic Bezier curve, and physics calculations are performed on these control points in a compute shader. Since rendering every grass blade is computationally expensive, grass blade that do not contribute to a frame are culled in the computer shader. Visible bezier representaions of grass blades are sent to a grass graphics pipeline where the Bezier control points are transofmred, geometry is created in tesselations shaders, and the grass is shaded in the fragment shader.
+This project implements a grass simulator and renderer using Vulkan. Each grass blade is represented by a quadratic Bezier curve, and physics calculations are performed on these control points in a compute shader. Since rendering every grass blade is computationally expensive, grass blade that do not contribute to a frame are culled in the computer shader. Visible bezier representaions of grass blades are sent to a grass graphics pipeline where the Bezier control points are transformed, geometry is created in tesselations shaders, and the grass is shaded in the fragment shader.
 
 The project follows [Responsive Real-Time Grass Rendering for General 3D Scenes](https://www.cg.tuwien.ac.at/research/publications/2017/JAHRMANN-2017-RRTG/JAHRMANN-2017-RRTG-draft.pdf) very closely
 
