@@ -10,7 +10,7 @@ Vulkan Grass Tesselation
 
 [![](readmeImages/GrassTesselationVimeoLinkImage.png)](https://vimeo.com/241412888)
 
-Can simulate over 1 million blades of grass on a notebook GTX 1070.
+_Can simulate over 1 million blades of grass on a notebook GTX 1070._
 
 ## OverView
 
