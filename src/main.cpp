@@ -10,6 +10,9 @@ Device* device;
 SwapChain* swapChain;
 Renderer* renderer;
 Camera* camera;
+const float planeDim = 15.f;//15 was original val
+const float WIDTH = 1280;
+const float HEIGHT = 960;
 double old = 0.f;
 double current = 0.f;
 int fps = 0;
@@ -85,7 +88,7 @@ namespace {
 
 int main() {
     static constexpr char* applicationName = "Vulkan Grass Rendering";
-    InitializeWindow(640, 480, applicationName);
+    InitializeWindow(WIDTH, HEIGHT, applicationName);
 
     unsigned int glfwExtensionCount = 0;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -108,7 +111,7 @@ int main() {
 
     swapChain = device->CreateSwapChain(surface, 5);
 
-    camera = new Camera(device, 640.f / 480.f);
+    camera = new Camera(device, WIDTH / HEIGHT);
 
     VkCommandPoolCreateInfo transferPoolInfo = {};
     transferPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -134,7 +137,6 @@ int main() {
         grassImageMemory
     );
 
-    float planeDim = 30.f;//15 was original val
     float halfWidth = planeDim * 0.5f;
     Model* plane = new Model(device, transferCommandPool,
         {
