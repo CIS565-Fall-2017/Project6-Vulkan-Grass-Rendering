@@ -1,6 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
+#define GRAVITY 9.8
 #define WORKGROUP_SIZE 32
 layout(local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
@@ -21,10 +22,20 @@ struct Blade {
     vec4 up;
 };
 
-// TODO: Add bindings to:
+// Add bindings for:
 // 1. Store the input blades
 // 2. Write out the culled blades
 // 3. Write the total number of blades remaining
+
+// input
+layout(set = 2, binding = 0) buffer InputBlades {
+    Blade inputBlades[];
+};
+
+// output
+layout(set = 2, binding = 1) buffer CulledBlades {
+    Blade culledBlades[];
+};
 
 // The project is using vkCmdDrawIndirect to use a buffer as the arguments for a draw call
 // This is sort of an advanced feature so we've showed you what this buffer should look like
@@ -36,21 +47,140 @@ struct Blade {
 // 	  uint firstInstance; // = 0
 // } numBlades;
 
+layout(set = 2, binding = 2) buffer NumBlades {
+    uint vertexCount;
+	uint instanceCount;
+	uint firstVertex;
+	uint firstInstance;
+} numBlades;
+
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
 }
 
-void main() {
+float rand(vec2 co) {
+	return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+void main() 
+{
 	// Reset the number of blades to 0
-	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
+	if (gl_GlobalInvocationID.x == 0) 
+	{
+		numBlades.vertexCount = 0;
 	}
 	barrier(); // Wait till all threads reach this point
 
-    // TODO: Apply forces on every blade and update the vertices in the buffer
+	uint index = gl_GlobalInvocationID.x;
+	Blade blade = inputBlades[index];
+	
+	// blade parameters
+	vec3 v0 = blade.v0.xyz;
+	vec3 v1 = blade.v1.xyz;
+	vec3 v2 = blade.v2.xyz;
+	vec3 up = blade.up.xyz;
 
-	// TODO: Cull blades that are too far away or not in the camera frustum and write them
-	// to the culled blades buffer
-	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
+	float angle = blade.v0.w; // orientation of the blade of grass; 
+							  // if this angle is zero the thin width portion (non-flat portion) of the grass is facing +ve x.
+	float height = blade.v1.w;
+	float width = blade.v2.w;
+	float stiffness = blade.up.w;
+
+	vec3 side_direction = vec3(cos(angle), 0.0, sin(angle));
+	vec3 front_direction = normalize(cross(up, side_direction));
+
+    // Apply Natural Forces on every blade
+	// Recovery Force
+	vec3 initial_v2 = v0 + up * height;
+	vec3 recovery = (initial_v2 - v2)*stiffness;
+
+	// Gravity Force
+	vec3 gE = vec3(0.0, -GRAVITY, 0.0); //Environmental Gravity
+	vec3 gF = 0.25 * GRAVITY * front_direction; //Front Gravity
+	vec3 gravity = gE+gF; //Total Gravitational Force
+	
+	// Wind Force
+	vec3 windDirection = normalize(vec3(1, 1, 1)); // straight wave
+
+	float windStrength = 10.0* rand(v0.xz) * cos(totalTime);
+
+	float fd = 1.0 - abs(dot(windDirection, normalize(v2 - v0)));
+	float fr = dot(v2 - v0, up) / height;
+	float theta = fd * fr;
+
+	vec3 wind = windStrength * windDirection * theta;
+	
+	// Resulting Translation due to forces over delta time
+	vec3 translation_dt = (recovery + wind + gravity) * deltaTime;
+
+	v2 += translation_dt;
+
+	// State Validation
+	// 1. v2 has to remain above the local plane
+	v2 -= up * min(dot(up, (v2-v0)), 0.0);
+
+	// 2. grass blade always has a slight curvature
+	vec3 l_proj = abs( v2-v0 - up * dot((v2-v0), up) );
+	v1 = v0 + height*up * max( (1.0 - l_proj)/height, 0.05*max((l_proj/height), 1.0) );
+
+	// 3. length of Bezier not larger than blade height
+	float L0 = distance(v0, v2);
+	float L1 = distance(v0, v1) + distance(v1, v2);
+	float n = 2.0;
+	float L = (2.0 * L0 + (n - 1.0) * L1) / (n + 1.0);
+	float r = height / L;
+
+	// Corrected Values of v1 and v2
+	vec3 v1_corrected = v0 + r*(v1-v0);
+	vec3 v2_corrected = v1_corrected + r*(v2-v1);
+	
+	// Update the input blades so the state propogates
+	inputBlades[index].v1.xyz = v1_corrected;
+	inputBlades[index].v2.xyz = v2_corrected;
+	
+	// Cull Blades
+	// 1. Orientation culling
+	mat4 inverseViewMat = inverse(camera.view);
+	vec3 eye_worldSpace = ( inverseViewMat * vec4(0.0,0.0,0.0,1.0) ).xyz;
+	vec3 viewDirection = eye_worldSpace - v0;
+	bool culled_Due_To_Orientaion = dot(viewDirection, front_direction) > 0.8;
+
+	// 2. View-frustum culling
+	float tolerance = 3.0f;
+	bool culled_Due_To_Frustum = false;
+
+	vec4 v0_NDC = camera.proj * camera.view * vec4(v0, 1.0);
+	culled_Due_To_Frustum = ( !inBounds(v0_NDC.x, v0_NDC.w + tolerance) || 
+							  !inBounds(v0_NDC.y, v0_NDC.w + tolerance) );
+
+	if (culled_Due_To_Frustum) 
+	{
+		vec3 m = 0.25 * v0 + 0.5 * v1 + 0.25 * v2;
+		vec4 m_NDC = camera.proj * camera.view * vec4(m, 1.0);
+		culled_Due_To_Frustum = ( !inBounds(m_NDC.x, m_NDC.w + tolerance) || 
+								  !inBounds(m_NDC.y, m_NDC.w + tolerance) );
+	}
+
+	if (culled_Due_To_Frustum) 
+	{
+		vec4 v2_NDC = camera.proj * camera.view * vec4(v2, 1.0);
+		culled_Due_To_Frustum = ( !inBounds(v2_NDC.x, v2_NDC.w + tolerance) || 
+								  !inBounds(v2_NDC.y, v2_NDC.w + tolerance) );
+	}
+
+	// 3. Distance culling
+	float projected_distance = length(v0 - eye_worldSpace - up * dot(up, (v0 - eye_worldSpace)) );
+	float dmax = 40.0;
+	float numBuckets = 10.0;
+	bool culled_Due_To_Distance = mod(index, numBuckets) > floor(numBuckets * (1.0 - projected_distance/dmax) );
+
+	// Atomic operation to read and update numBlades.vertexCount is required because the compute shader is 
+	// parallezied over the number of grass blades, ie two threads could try to update the numBlades.vertexCount 
+	// at the same time.
 	// You want to write the visible blades to the buffer without write conflicts between threads
+	
+	if(!culled_Due_To_Distance && !culled_Due_To_Frustum && !culled_Due_To_Orientaion) //   
+	{
+		culledBlades[atomicAdd(numBlades.vertexCount, 1)] = inputBlades[index];
+	}	
 }
