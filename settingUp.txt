@@ -1,0 +1,6 @@
+when you clone make sure its a recursive clone
+have git bash installed.
+rclick in window and bring up a git bash
+do (without quotes):
+"mkdir build; cd build; cmake-gui .."
+click configure (might have to copy ), then generate, then open project

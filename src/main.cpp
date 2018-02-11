@@ -5,11 +5,32 @@
 #include "Camera.h"
 #include "Scene.h"
 #include "Image.h"
-
+#include <sstream>
 Device* device;
 SwapChain* swapChain;
 Renderer* renderer;
 Camera* camera;
+const float planeDim = 15.f;//15 was original val
+const float WIDTH = 1280;
+const float HEIGHT = 960;
+double old = 0.f;
+double current = 0.f;
+int fps = 0;
+int fpstracker = 0;
+
+std::string convertIntToString(int number)
+{
+	std::stringstream ss;
+	ss << number;
+	return ss.str();
+}
+
+std::string convertFloatToString(double number)
+{
+	std::stringstream ss;
+	ss << number;
+	return ss.str();
+}
 
 namespace {
     void resizeCallback(GLFWwindow* window, int width, int height) {
@@ -67,7 +88,7 @@ namespace {
 
 int main() {
     static constexpr char* applicationName = "Vulkan Grass Rendering";
-    InitializeWindow(640, 480, applicationName);
+    InitializeWindow(WIDTH, HEIGHT, applicationName);
 
     unsigned int glfwExtensionCount = 0;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -90,7 +111,7 @@ int main() {
 
     swapChain = device->CreateSwapChain(surface, 5);
 
-    camera = new Camera(device, 640.f / 480.f);
+    camera = new Camera(device, WIDTH / HEIGHT);
 
     VkCommandPoolCreateInfo transferPoolInfo = {};
     transferPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -116,7 +137,6 @@ int main() {
         grassImageMemory
     );
 
-    float planeDim = 15.f;
     float halfWidth = planeDim * 0.5f;
     Model* plane = new Model(device, transferCommandPool,
         {
@@ -145,6 +165,18 @@ int main() {
 
     while (!ShouldQuit()) {
         glfwPollEvents();
+
+		//see rasterizer hw
+		current = (double)time(NULL);
+		fpstracker++;
+		const double elapsed = current - old;
+		if (elapsed >= 1) {
+			fps = (int)(fpstracker / elapsed);
+			fpstracker = 0;
+			old = current;
+			std::string title = "Vulkan Grass Rendering | " + convertIntToString(fps) + " FPS " + convertFloatToString(1000.f/(double)fps) + " ms";
+			glfwSetWindowTitle(GetGLFWWindow(), title.c_str());
+		}
         scene->UpdateTime();
         renderer->Frame();
     }

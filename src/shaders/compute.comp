@@ -36,6 +36,20 @@ struct Blade {
 // 	  uint firstInstance; // = 0
 // } numBlades;
 
+layout(set = 2, binding = 0) buffer Blades {
+	Blade blades[];
+};
+layout(set = 2, binding = 1) buffer CulledBlades {
+	Blade culledblades[];
+};
+layout(set = 2, binding = 2) buffer NumBlades {
+	  uint vertexCount;   // Write the number of blades remaining here
+	  uint instanceCount; // = 1
+	  uint firstVertex;   // = 0
+	  uint firstInstance; // = 0
+} numBlades;
+
+
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
 }
@@ -43,14 +57,110 @@ bool inBounds(float value, float bounds) {
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
+		numBlades.vertexCount = 0;
 	}
 	barrier(); // Wait till all threads reach this point
 
     // TODO: Apply forces on every blade and update the vertices in the buffer
+	//make const
+	Blade thisblade = blades[gl_GlobalInvocationID.x];
+	
+    //https://www.cg.tuwien.ac.at/research/publications/2017/JAHRMANN-2017-RRTG/JAHRMANN-2017-RRTG-draft.pdfs
+	//pull out the paper's blade properties v0,v1,v2, up,angle,h,w,stiffness stored in thisblade's four vec4s
+	//make const
+	vec3 v0 = thisblade.v0.xyz;
+	vec3 v1 = thisblade.v1.xyz;
+	vec3 v2 = thisblade.v2.xyz;
+	vec3 up = thisblade.up.xyz;
+	float angle = thisblade.v0.w;
+	float h = thisblade.v1.w;
+	float w = thisblade.v2.w;
+	float s = thisblade.up.w;//stiffness
+
+	vec3 dir = normalize(cross( up,vec3(sin(angle),0,cos(angle)) ));
+
+	//recovery
+	vec3 Iv2 = v0 + (h*up);//initial v2
+	vec3 recovery = (Iv2 - v2)*s;
+
+	//gravity (environment + front), more complicated in paper for environment but this will do
+	vec3 gravity = vec3(0.f, -9.8f, 0.f) + 0.25*9.8*dir;
+
+	//wind
+	float oneOverHeight = 1.f/h;
+	vec3 wind_influence = sin(totalTime)*vec3(1.f, 0.f, 0.f) + sin(totalTime*0.5)*vec3(0.5f, 0.f, 0.5f);
+	vec3 baseToV2 = v2-v0;
+	float fd = 1.f - abs( dot(normalize(wind_influence), normalize(baseToV2)) );
+	float fr = dot(baseToV2, up) * oneOverHeight;
+	float alignment_value = fd*fr;
+	vec3 wind = wind_influence*alignment_value*5.f;
+
+	//get the new tip location
+	vec3 newV2 = v2 + (recovery+gravity+wind)*deltaTime;
+	newV2 = newV2 - (up * min(dot(up, newV2-v0),0.f) );
+
+	//get the new control point location
+	float lproj = length(newV2 - v0 - up*dot(newV2-v0,up));
+	vec3 newV1 = v0 + h*up*max(1.f - (lproj/h), 0.05f*max(lproj/h, 1.f));
+
+	//get the corrected tip and control point location (make sure length is constant)
+	float L0 = length(newV2 - v0);
+	float L1 = length(newV1-newV2) + length(newV1-v0);
+	float L = (2.f*L0 + L1) * 0.33f;
+	float r = h / L;
+	vec3 v1_corr = v0 + r*(newV1-v0);
+	vec3 v2_corr = v1_corr + r*(newV2 - newV1);
+
+	//update the blade
+	thisblade.v1 = vec4(v1_corr, h);
+	thisblade.v2 = vec4(v2_corr, w);
+	blades[gl_GlobalInvocationID.x] = thisblade;
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
+
+	//v0 In Frustum
+	mat4 viewproj = camera.proj * camera.view;
+	float bound = 1.07;
+	vec4 v0ndc = viewproj  * vec4(v0,1.f);
+	v0ndc.xyz *= -(1.f/v0ndc.w); 
+	bool v0InFrust = inBounds(v0ndc.x, bound) && inBounds(v0ndc.y, bound) && inBounds(v0ndc.z, bound);
+
+	//middle in Frustum
+	vec4 m = vec4(0.25f*v0 + 0.5f*v1_corr + 0.25f*v2_corr, 1.f);
+	vec4 mndc = viewproj * m;
+	mndc.xyz *= -(1.f/mndc.w); 
+	bool mInFrust = inBounds(mndc.x, bound) && inBounds(mndc.y, bound) && inBounds(mndc.z, bound);
+
+	//v2_corr in Frustum
+	vec4 v2ndc = viewproj  * vec4(v2_corr,1.f);
+	v2ndc.xyz *= -(1.f/v2ndc.w); 
+	bool v2InFrust = inBounds(v2ndc.x, bound) && inBounds(v2ndc.y, bound) && inBounds(v2ndc.z, bound);
+
+	//frust cull
+	bool frustcull = !(v0InFrust || mInFrust || v2InFrust);
+
+
+	//ori cull
+	mat4 camToWorld = inverse(camera.view);
+	bool oricull = abs(dot(dir, normalize(v0-camToWorld[3].xyz))) > 0.9f;
+
+	//distance cull
+	float n = 50;
+	float dmax = 50;
+	vec3 c = mat3(camToWorld) * -camera.view[3].xyz;
+	float dproj = length(v0 - c - up*dot(v0-c, up));
+	float maxcullforbucket = floor( n * (1.f-(dproj/dmax)) );
+	bool distcull = mod(gl_GlobalInvocationID.x, n) > maxcullforbucket;
+
+	//add if not culled
+	if(!(oricull || frustcull || distcull)) {
+//	if(!oricull) {
+//	if(!distcull) {
+//	if(!frustcull) {
+		culledblades[atomicAdd(numBlades.vertexCount, 1)] = thisblade;
+	}
+//	culledblades[atomicAdd(numBlades.vertexCount, 1)] = thisblade;
 }
