@@ -9,10 +9,43 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 } camera;
 
 // TODO: Declare tessellation evaluation shader inputs and outputs
+layout(location = 0) in vec4 e_v1[];
+layout(location = 1) in vec4 e_v2[];
+layout(location = 2) in vec4 e_orthogonal[]; // normalized orthogonal direction to blade and width
+
+layout(location = 0) out vec3 f_pos;
+layout(location = 1) out vec3 f_nor;
+layout(location = 2) out float f_occ; // faked ambient occlusion weight
 
 void main() {
     float u = gl_TessCoord.x;
     float v = gl_TessCoord.y;
 
-	// TODO: Use u and v to parameterize along the grass blade and output positions for each vertex of the grass blade
+	vec3 p0 = gl_in[0].gl_Position.xyz;
+	vec3 p1 = e_v1[0].xyz; // 0?
+	vec3 p2 = e_v2[0].xyz;
+	vec4 e_o = e_orthogonal[0];
+
+	// bezier curve location
+	vec3 a = p0 + v * (p1 - p0);
+	vec3 b = p1 + v * (p2 - p1);
+	vec3 pBezier = a + v * (b - a);
+
+	// triangular width offset
+	// full at base, none at top, direction dependent on offset from center
+	vec3 pOrtho = (1.0 - v) * e_o.w * 2.0 * (u - 0.5) * e_o.xyz;
+	
+	f_pos = (camera.view * vec4(pBezier + pOrtho, 1.0)).xyz;
+
+	f_occ = 0.75 * (1.0 - v) + 0.25 * (1.0 - 2.0 * abs(0.5 - u));
+
+	// normals
+	vec3 bezTangent = normalize(b - a);
+
+	f_nor = (camera.view * vec4(normalize(cross(normalize(bezTangent), e_o.xyz)), 0.0)).xyz;
+
+	// clip space position
+	gl_Position = camera.proj * vec4(f_pos, 1.0); 
+
+	//gl_Position = camera.proj * camera.view * (gl_in[0].gl_Position + vec4(1.0 - u, v, 0.0, 0.0));
 }

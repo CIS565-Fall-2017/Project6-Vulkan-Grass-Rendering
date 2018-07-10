@@ -28,26 +28,126 @@ struct Blade {
 
 // The project is using vkCmdDrawIndirect to use a buffer as the arguments for a draw call
 // This is sort of an advanced feature so we've showed you what this buffer should look like
-//
-// layout(set = ???, binding = ???) buffer NumBlades {
-// 	  uint vertexCount;   // Write the number of blades remaining here
-// 	  uint instanceCount; // = 1
-// 	  uint firstVertex;   // = 0
-// 	  uint firstInstance; // = 0
-// } numBlades;
+
+layout(set = 2, binding = 0) buffer InBlades {
+	Blade inBlades[];
+};
+
+layout(set = 2, binding = 1) buffer OutBlades {
+	Blade outBlades[];
+};
+
+layout(set = 2, binding = 2) buffer NumBlades {
+    uint vertexCount;   // Write the number of blades remaining here
+    uint instanceCount; // = 1
+	uint firstVertex;   // = 0
+    uint firstInstance; // = 0
+} numBlades;
 
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
 }
 
+bool inBoundsNDC(in vec4 v4) {
+	vec3 v = v4.xyz / v4.w;
+	return (v.x >= -1.05) && (v.x <= 1.05) &&
+	(v.y >= -1.05) && (v.y <= 1.05) &&
+	(v.z >= -1.05) && (v.z <= 1.05);
+}
+
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
+		numBlades.vertexCount = 0;
 	}
 	barrier(); // Wait till all threads reach this point
 
-    // TODO: Apply forces on every blade and update the vertices in the buffer
+	Blade blade = inBlades[gl_GlobalInvocationID.x];
+
+	vec3 forward = vec3(cos(blade.v0.w), 0.0, sin(blade.v0.w));
+	//totalTime += deltaTime;
+
+	// -- apply forces --
+
+	vec3 force;
+
+	// gravity
+
+	vec3 gravity = 9.8 * -blade.up.xyz;
+	// 'forward gravity'
+	gravity += 2.45 * forward;
+
+	//gravity = vec3(0);
+
+	// spring force
+
+	vec3 spring = blade.up.w * (blade.v0.xyz + blade.v1.w * blade.up.xyz - blade.v2.xyz);
+	//spring = vec3(0);
+
+	//wind force
+
+	vec3 wind = 2.5 * (1.0 + sin(0.4 * totalTime + 0.06 * blade.v0.x + 0.05 * blade.v0.z) + 
+	0.4 * cos(1.7 * totalTime + 0.4 * blade.v0.x) + 
+	0.2 * sin(3.0 * totalTime + 0.5 * blade.v0.z)) 
+	* normalize(vec3(-1, 0, -1));
+
+	vec3 displacement = deltaTime * (wind + spring + gravity);
+
+	vec3 newV2 = blade.v2.xyz + displacement;
+
+	// -- apply corrections --
+	
+	newV2 = newV2 - blade.up.xyz * min(blade.up.xyz * (newV2 - blade.v0.xyz), 0.0);
+
+	float lproj = length(newV2 - blade.v0.xyz - blade.up.xyz * dot(blade.up.xyz, (newV2 - blade.v0.xyz)));
+
+	vec3 newV1 = blade.v0.xyz + blade.v1.w * blade.up.xyz * max( 1.0 - (lproj / blade.v1.w) , 0.05 * max(1.0, lproj / blade.v1.w));
+	
+	float bezL0 = distance(newV2, blade.v0.xyz);
+	float bezL1 = distance(newV2, blade.v1.xyz) + distance(blade.v1.xyz, blade.v0.xyz);
+	float bezL = (2.0 * bezL0 + bezL1) / 3.0;
+
+	float ratioCorrect = blade.v1.w / bezL;
+	vec3 v1corr = blade.v0.xyz + ratioCorrect * (newV1 - blade.v0.xyz);
+	newV2 = v1corr + ratioCorrect * (newV2 - newV1);
+	
+	blade.v1.xyz = v1corr;//newV1;
+	blade.v2.xyz = newV2;
+	
+	//blade.v2.xyz = newV2;
+	inBlades[gl_GlobalInvocationID.x] = blade;
+	
+	// -- cull blades --
+	vec3 camPos = -transpose(mat3(camera.view)) * camera.view[3].xyz;
+
+	// blades orientation test
+	vec3 camProj = camPos - blade.v0.xyz;
+	camProj.y = 0.05;
+
+	vec3 cv0 = (camera.view * vec4(blade.v0.xyz, 1.0)).xyz;
+	bool cullOrientation = abs(dot(forward, normalize(camProj))) < 0.05;
+
+	// projected distance test
+
+	
+	float dproj = length(blade.v0.xyz - camPos - blade.up.xyz * (dot(blade.up.xyz, blade.v0.xyz - camPos)));
+	bool cullDistance = mod(gl_GlobalInvocationID.x, 10.0) < floor(10.0 * (1.0 - (dproj / 40.0)));
+
+	// frustum test
+	vec4 ndc0 = (camera.proj * camera.view * vec4(blade.v0.xyz, 1.0));
+	vec4 ndc1 = (camera.proj * camera.view * vec4(blade.v1.xyz, 1.0));
+	vec4 ndc2 = (camera.proj * camera.view * vec4(blade.v2.xyz, 1.0));
+
+	bool cullNDC = (!inBoundsNDC(ndc0) && !inBoundsNDC(ndc1) && !inBoundsNDC(ndc2));
+
+	if (cullDistance && !cullOrientation && !cullNDC) {
+		
+		outBlades[atomicAdd(numBlades.vertexCount, 1)] = blade;
+	}
+
+	//atomicAdd(numBlades.vertexCount, 1);
+
+    
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
